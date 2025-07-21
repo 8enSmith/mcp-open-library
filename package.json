@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
+    "axios": "^1.10.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
@@ -32,7 +33,6 @@
     "@types/node": "^20.11.24",
     "@typescript-eslint/eslint-plugin": "^8.30.1",
     "@typescript-eslint/parser": "^8.30.1",
-    "axios": "^1.8.4",
     "eslint": "^9.24.0",
     "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-import": "^2.31.0",
