@@ -10,7 +10,7 @@ USER service-user
 
 WORKDIR /app
 
-RUN git clone https://github.com/8enSmith/mcp-open-library . && git checkout 4f080d4f87a851400834de97d4c76b77c7bebf18
+RUN git clone https://github.com/8enSmith/mcp-open-library . && git checkout main
 
 RUN (pnpm install || true) && (pnpm run build || true)
 
