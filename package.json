@@ -22,7 +22,7 @@
     "test:precommit": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "0.6.0",
+    "@modelcontextprotocol/sdk": "^1.16.0",
     "axios": "^1.10.0",
     "zod": "^3.24.2"
   },
