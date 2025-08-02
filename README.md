@@ -254,12 +254,23 @@ npm run inspector http://localhost:8080
 - `npm test` - Run the test suite
 - `npm run format` - Format code with Prettier
 - `npm run inspector` - Run the MCP Inspector against the server
+- `npm run semantic-release` - Run semantic release (automated in CI)
 
 ### Running Tests
 
 ```bash
 npm test
 ```
+
+### Releases
+
+This project uses [semantic-release](https://semantic-release.gitbook.io/) for automated versioning and publishing. Releases are automatically created when commits are pushed to the `main` branch using [conventional commit messages](https://www.conventionalcommits.org/).
+
+Commit message format:
+- `feat:` - new features (triggers minor version bump)
+- `fix:` - bug fixes (triggers patch version bump)  
+- `feat!:` or `fix!:` - breaking changes (triggers major version bump)
+- `docs:`, `style:`, `refactor:`, `test:`, `chore:` - no version bump
 
 ## Contributing
 
