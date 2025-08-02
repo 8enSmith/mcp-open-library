@@ -275,10 +275,51 @@ For the automated release workflow to function, the following secrets must be co
 
 #### Commit Message Format
 
-- `feat:` - new features (triggers minor version bump)
-- `fix:` - bug fixes (triggers patch version bump)  
-- `feat!:` or `fix!:` - breaking changes (triggers major version bump)
-- `docs:`, `style:`, `refactor:`, `test:`, `chore:` - no version bump
+**⚠️ Important:** This project uses automated semantic versioning. The commit message format directly determines version bumps and changelog generation.
+
+The project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification. Each commit message must be structured as:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Supported commit types:**
+- `feat:` - new features (triggers **minor** version bump: 1.0.0 → 1.1.0)
+- `fix:` - bug fixes (triggers **patch** version bump: 1.0.0 → 1.0.1)  
+- `feat!:` or `fix!:` - breaking changes (triggers **major** version bump: 1.0.0 → 2.0.0)
+- `docs:`, `style:`, `refactor:`, `test:`, `chore:` - maintenance (no version bump)
+
+**Examples:**
+```
+feat: add new search functionality
+fix: resolve timeout issue in API calls
+feat!: remove deprecated getBook method
+docs: update API documentation
+```
+
+**Why this matters:**
+- ✅ Proper format → Automatic version bump and release
+- ❌ Wrong format → No release, manual intervention required
+- 📝 Commit messages become the public changelog
+
+The project validates commit messages automatically to ensure releases work correctly.
+
+#### Development Workflow
+
+The project includes automatic validation to ensure proper commit message format:
+
+- **Pre-commit hooks** validate code quality with linting and tests
+- **Commit message validation** ensures conventional commit format using [commitlint](https://commitlint.js.org/)
+- **Invalid commit messages** are rejected before they reach the repository
+
+To manually validate a commit message:
+```bash
+npm run commitlint
+```
 
 ## Contributing
 
