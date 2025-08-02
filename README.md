@@ -266,7 +266,15 @@ npm test
 
 This project uses [semantic-release](https://semantic-release.gitbook.io/) for automated versioning and publishing. Releases are automatically created when commits are pushed to the `main` branch using [conventional commit messages](https://www.conventionalcommits.org/).
 
-Commit message format:
+#### Required Secrets
+
+For the automated release workflow to function, the following secrets must be configured in the GitHub repository:
+
+- `GITHUB_TOKEN` - Automatically provided by GitHub Actions for creating releases and updating the repository
+- `NPM_TOKEN` - Required for publishing packages to npm. Generate this token from your npm account with publish permissions
+
+#### Commit Message Format
+
 - `feat:` - new features (triggers minor version bump)
 - `fix:` - bug fixes (triggers patch version bump)  
 - `feat!:` or `fix!:` - breaking changes (triggers major version bump)
