@@ -254,71 +254,11 @@ npm run inspector http://localhost:8080
 - `npm test` - Run the test suite
 - `npm run format` - Format code with Prettier
 - `npm run inspector` - Run the MCP Inspector against the server
-- `npm run semantic-release` - Run semantic release (automated in CI)
 
 ### Running Tests
 
 ```bash
 npm test
-```
-
-### Releases
-
-This project uses [semantic-release](https://semantic-release.gitbook.io/) for automated versioning and publishing. Releases are automatically created when commits are pushed to the `main` branch using [conventional commit messages](https://www.conventionalcommits.org/).
-
-#### Required Secrets
-
-For the automated release workflow to function, the following secrets must be configured in the GitHub repository:
-
-- `GITHUB_TOKEN` - Automatically provided by GitHub Actions for creating releases and updating the repository
-- `NPM_TOKEN` - Required for publishing packages to npm. Generate this token from your npm account with publish permissions
-
-#### Commit Message Format
-
-**⚠️ Important:** This project uses automated semantic versioning. The commit message format directly determines version bumps and changelog generation.
-
-The project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification. Each commit message must be structured as:
-
-```
-<type>[optional scope]: <description>
-
-[optional body]
-
-[optional footer(s)]
-```
-
-**Supported commit types:**
-- `feat:` - new features (triggers **minor** version bump: 1.0.0 → 1.1.0)
-- `fix:` - bug fixes (triggers **patch** version bump: 1.0.0 → 1.0.1)  
-- `feat!:` or `fix!:` - breaking changes (triggers **major** version bump: 1.0.0 → 2.0.0)
-- `docs:`, `style:`, `refactor:`, `test:`, `chore:` - maintenance (no version bump)
-
-**Examples:**
-```
-feat: add new search functionality
-fix: resolve timeout issue in API calls
-feat!: remove deprecated getBook method
-docs: update API documentation
-```
-
-**Why this matters:**
-- ✅ Proper format → Automatic version bump and release
-- ❌ Wrong format → No release, manual intervention required
-- 📝 Commit messages become the public changelog
-
-The project validates commit messages automatically to ensure releases work correctly.
-
-#### Development Workflow
-
-The project includes automatic validation to ensure proper commit message format:
-
-- **Pre-commit hooks** validate code quality with linting and tests
-- **Commit message validation** ensures conventional commit format using [commitlint](https://commitlint.js.org/)
-- **Invalid commit messages** are rejected before they reach the repository
-
-To manually validate a commit message:
-```bash
-npm run commitlint
 ```
 
 ## Contributing
