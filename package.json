@@ -40,7 +40,8 @@
     "test:precommit": "vitest run",
     "commitlint": "commitlint --edit",
     "prepublishOnly": "npm run test:precommit && npm run build",
-    "semantic-release": "semantic-release"
+    "semantic-release": "semantic-release",
+    "semantic-release:dry-run": "semantic-release --dry-run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.16.0",
