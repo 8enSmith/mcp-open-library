@@ -1,5 +1,6 @@
 # MCP Open Library
 
+[![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/8enSmith/mcp-open-library)](https://archestra.ai/mcp-catalog/8enSmith__mcp-open-library)
 [![smithery badge](https://smithery.ai/badge/@8enSmith/mcp-open-library)](https://smithery.ai/server/@8enSmith/mcp-open-library)
 
 A Model Context Protocol (MCP) server for the Open Library API that enables AI assistants to search for book and author information.
