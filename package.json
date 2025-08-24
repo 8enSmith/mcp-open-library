@@ -1,8 +1,26 @@
 {
   "name": "mcp-open-library",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "MCP server for the Open Library",
-  "private": true,
+  "private": false,
+  "keywords": [
+    "mcp",
+    "open-library",
+    "books",
+    "library",
+    "api",
+    "server"
+  ],
+  "author": "Ben Smith",
+  "license": "MIT",
+  "homepage": "https://github.com/8enSmith/mcp-open-library#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/8enSmith/mcp-open-library.git"
+  },
+  "bugs": {
+    "url": "https://github.com/8enSmith/mcp-open-library/issues"
+  },
   "type": "module",
   "bin": {
     "open-library-server": "./build/index.js"
