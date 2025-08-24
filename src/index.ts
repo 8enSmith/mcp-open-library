@@ -26,7 +26,7 @@ class OpenLibraryServer {
     this.server = new Server(
       {
         name: "open-library-server",
-        version: "0.1.0",
+        version: "1.0.0",
       },
       {
         capabilities: {
