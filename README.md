@@ -59,8 +59,6 @@ npm run build
   8. Try running a tool e.g. click get_book_by_title
   9. Search for a book e.g. In the title box enter 'The Hobbit' and then click 'Run Tool'. Server will then return book details.
 
-![alt text](image-1.png)
-
 ### Using with an MCP Client
 
 This server implements the Model Context Protocol, which means it can be used by any MCP-compatible AI assistant or client e.g. [Claude Desktop](https://modelcontextprotocol.io/quickstart/user). The server exposes the following tools:
