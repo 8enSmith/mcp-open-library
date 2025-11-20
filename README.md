@@ -49,15 +49,15 @@ npm run build
 
 ### Running the Server
 
-You can use the MCP Inspector to test the server:
-
-```bash
-npm run inspector
-```
-
-Access the MCP Inspector and then test the tool e.g.
-
-![alt text](image.png)
+  1. Ensure you are running node v22.21.1 (it'll probably work on a newer version of node but this is what Im using for this test). If you have `nvm` installed run `nvm use`.
+  2. In the `mcp-open-library` root directory run `npm run build`
+  3. Next run `npm run inspector`. Once built, click the URL with the `MCP_PROXY_AUTH_TOKEN` query string parameter to open the Inspector.
+  4. In the Inspector, choose 'STDIO' transport
+  5. Make sure the command is set to 'build/index.js'
+  6. Click the 'Connect' button in the Inspector - you'll now connect to the server
+  7. Click 'Tools' in the top right menu bar
+  8. Try running a tool e.g. click get_book_by_title
+  9. Search for a book e.g. In the title box enter 'The Hobbit' and then click 'Run Tool'. Server will then return book details.
 
 ### Using with an MCP Client
 
