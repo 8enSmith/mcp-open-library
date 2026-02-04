@@ -23,7 +23,7 @@ const handleGetBookByTitle = async (
   const parseResult = GetBookByTitleArgsSchema.safeParse(args);
 
   if (!parseResult.success) {
-    const errorMessages = parseResult.error.errors
+    const errorMessages = parseResult.error.issues
       .map((e) => `${e.path.join(".")}: ${e.message}`)
       .join(", ");
     throw new McpError(

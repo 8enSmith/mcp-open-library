@@ -8,7 +8,7 @@ import { z } from "zod";
 
 import { AuthorInfo, OpenLibraryAuthorSearchResponse } from "./types.js";
 
-// Schema for the get_authors_by_name tool arguments
+// Schema for the get_authors_by-name tool arguments
 export const GetAuthorsByNameArgsSchema = z.object({
   name: z.string().min(1, { message: "Author name cannot be empty" }),
 });
@@ -23,7 +23,7 @@ const handleGetAuthorsByName = async (
   const parseResult = GetAuthorsByNameArgsSchema.safeParse(args);
 
   if (!parseResult.success) {
-    const errorMessages = parseResult.error.errors
+    const errorMessages = parseResult.error.issues
       .map((e) => `${e.path.join(".")}: ${e.message}`)
       .join(", ");
     throw new McpError(

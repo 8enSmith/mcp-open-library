@@ -21,7 +21,7 @@ const handleGetAuthorPhoto = async (args: unknown): Promise<CallToolResult> => {
   const parseResult = GetAuthorPhotoArgsSchema.safeParse(args);
 
   if (!parseResult.success) {
-    const errorMessages = parseResult.error.errors
+    const errorMessages = parseResult.error.issues
       .map((e) => `${e.path.join(".")}: ${e.message}`)
       .join(", ");
     throw new McpError(

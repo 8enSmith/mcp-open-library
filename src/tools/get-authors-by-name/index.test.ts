@@ -233,7 +233,7 @@ describe("handleGetAuthorsByName", () => {
     ).rejects.toThrow(
       new McpError(
         ErrorCode.InvalidParams,
-        "Invalid arguments for get_authors_by_name: name: Required",
+        "Invalid arguments for get_authors_by_name: name: Invalid input: expected string, received undefined",
       ),
     );
 

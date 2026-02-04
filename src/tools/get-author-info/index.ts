@@ -28,7 +28,7 @@ const handleGetAuthorInfo = async (
   const parseResult = GetAuthorInfoArgsSchema.safeParse(args);
 
   if (!parseResult.success) {
-    const errorMessages = parseResult.error.errors
+    const errorMessages = parseResult.error.issues
       .map((e) => `${e.path.join(".")}: ${e.message}`)
       .join(", ");
     throw new McpError(

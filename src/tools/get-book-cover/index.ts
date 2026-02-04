@@ -4,9 +4,7 @@ import { z } from "zod";
 // Schema for the get_book_cover tool arguments
 export const GetBookCoverArgsSchema = z.object({
   key: z.enum(["ISBN", "OCLC", "LCCN", "OLID", "ID"], {
-    errorMap: () => ({
-      message: "Key must be one of ISBN, OCLC, LCCN, OLID, ID",
-    }),
+    message: "Key must be one of ISBN, OCLC, LCCN, OLID, ID",
   }),
   value: z.string().min(1, { message: "Value cannot be empty" }),
   size: z
@@ -19,7 +17,7 @@ const handleGetBookCover = async (args: unknown) => {
   const parseResult = GetBookCoverArgsSchema.safeParse(args);
 
   if (!parseResult.success) {
-    const errorMessages = parseResult.error.errors
+    const errorMessages = parseResult.error.issues
       .map((e) => `${e.path.join(".")}: ${e.message}`)
       .join(", ");
     throw new McpError(

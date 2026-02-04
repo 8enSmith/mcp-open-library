@@ -44,7 +44,7 @@ describe("handleGetAuthorPhoto", () => {
     await expect(handleGetAuthorPhoto(args)).rejects.toThrow(
       new McpError(
         ErrorCode.InvalidParams,
-        "Invalid arguments for get_author_photo: olid: Required",
+        "Invalid arguments for get_author_photo: olid: Invalid input: expected string, received undefined",
       ),
     );
   });
@@ -54,7 +54,7 @@ describe("handleGetAuthorPhoto", () => {
     await expect(handleGetAuthorPhoto(args)).rejects.toThrow(
       new McpError(
         ErrorCode.InvalidParams,
-        "Invalid arguments for get_author_photo: : Expected object, received null",
+        "Invalid arguments for get_author_photo: : Invalid input: expected object, received null",
       ),
     );
   });

@@ -19,9 +19,7 @@ const GetBookByIdArgsSchema = z.object({
     .transform((val) => val.toLowerCase())
     .pipe(
       z.enum(["isbn", "lccn", "oclc", "olid"], {
-        errorMap: () => ({
-          message: "idType must be one of: isbn, lccn, oclc, olid",
-        }),
+        message: "idType must be one of: isbn, lccn, oclc, olid",
       }),
     ),
   idValue: z.string().min(1, { message: "idValue cannot be empty" }),
@@ -37,7 +35,7 @@ export const handleGetBookById = async (
   const parseResult = GetBookByIdArgsSchema.safeParse(args);
 
   if (!parseResult.success) {
-    const errorMessages = parseResult.error.errors
+    const errorMessages = parseResult.error.issues
       .map((e) => `${e.path.join(".")}: ${e.message}`)
       .join(", ");
     throw new McpError(
