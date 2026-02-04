@@ -83,10 +83,14 @@ describe("handleGetBookByTitle", () => {
       mockAxiosInstance,
     );
 
-    expect(result.content[0].text).toContain("Minimal Book");
+    expect(
+      (result.content[0] as { type: "text"; text: string }).text,
+    ).toContain("Minimal Book");
     expect(
       (
-        JSON.parse(result.content[0].text as string) as Array<{
+        JSON.parse(
+          (result.content[0] as { type: "text"; text: string }).text,
+        ) as Array<{
           title: string;
           authors: string[];
           first_publish_year: number | null;

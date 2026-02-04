@@ -87,7 +87,9 @@ describe("handleGetBookById", () => {
       ],
     });
     // Check specific fields in the parsed JSON
-    const parsedResult = JSON.parse(result.content[0].text as string);
+    const parsedResult = JSON.parse(
+      (result.content[0] as { type: "text"; text: string }).text,
+    );
     expect(parsedResult).toHaveProperty("title", "The Lord of the Rings");
     expect(parsedResult).toHaveProperty("authors", ["J.R.R. Tolkien"]);
     expect(parsedResult).toHaveProperty("publish_date", "1954");
@@ -155,7 +157,9 @@ describe("handleGetBookById", () => {
         },
       ],
     });
-    const parsedResult = JSON.parse(result.content[0].text as string);
+    const parsedResult = JSON.parse(
+      (result.content[0] as { type: "text"; text: string }).text,
+    );
     expect(parsedResult).toHaveProperty("title", "The Hobbit");
     expect(parsedResult).toHaveProperty("isbn_13", ["9780547928227"]);
     expect(parsedResult).toHaveProperty("olid", ["OL25189068M"]);

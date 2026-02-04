@@ -32,7 +32,7 @@
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "prepare": "npm run build",
     "watch": "tsc --watch",
-    "inspector": "npx @modelcontextprotocol/inspector@0.17.2 build/index.js",
+    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "test": "vitest",
     "format": "prettier --write src/**/*.ts",
     "lint": "eslint src --ext .ts",
@@ -40,7 +40,7 @@
     "test:precommit": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.16.0",
+    "@modelcontextprotocol/sdk": "^1.25.3",
     "axios": "^1.10.0",
     "zod": "^3.24.2"
   },
