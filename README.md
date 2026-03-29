@@ -9,6 +9,10 @@ A Model Context Protocol (MCP) server for the Open Library API that enables AI a
   <img width="380" height="200" src="https://glama.ai/mcp/servers/@8enSmith/mcp-open-library/badge" alt="mcp-open-library MCP server" />
 </a>
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/8ensmith-mcp-open-library).
+
 ## Overview
 
 This project implements an MCP server that provides tools for AI assistants to interact with the [Open Library](https://openlibrary.org/). It allows searching for book information by title, searching for authors by name, retrieving detailed author information using their Open Library key, and getting URLs for author photos using their Open Library ID (OLID). The server returns structured data for book and author information.
