@@ -2,7 +2,7 @@
 
 [![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/8enSmith/mcp-open-library)](https://archestra.ai/mcp-catalog/8ensmith__mcp-open-library)
 [![smithery badge](https://smithery.ai/badge/@8enSmith/mcp-open-library)](https://smithery.ai/server/@8enSmith/mcp-open-library)
-
+[![Listed on MCP Find](https://img.shields.io/badge/MCP_Find-Listed-blue)](https://mcp-find.org/tools/fastmcp)
 A Model Context Protocol (MCP) server for the Open Library API that enables AI assistants to search for book and author information.
 
 <a href="https://glama.ai/mcp/servers/@8enSmith/mcp-open-library">
