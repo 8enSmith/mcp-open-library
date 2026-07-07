@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/8ensmith-mcp-open-library-badge.png)](https://mseep.ai/app/8ensmith-mcp-open-library)
+
 # MCP Open Library
 
 [![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/8enSmith/mcp-open-library)](https://archestra.ai/mcp-catalog/8ensmith__mcp-open-library)
