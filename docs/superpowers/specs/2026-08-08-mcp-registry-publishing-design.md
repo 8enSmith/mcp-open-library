@@ -5,7 +5,7 @@
 
 ## Goal
 
-List `mcp-open-library` in the official MCP Registry as `io.github.8ensmith/mcp-open-library`, and
+List `mcp-open-library` in the official MCP Registry as `io.github.8enSmith/mcp-open-library`, and
 replace today's manual npm release with a secretless, tag-triggered pipeline that publishes to npm
 and the registry together.
 
@@ -33,8 +33,8 @@ identity across two more — all of which must agree:
 | `server.json` `packages[0].version` | version  | `1.0.3`                               |
 | git tag                             | version  | `v1.0.3`                              |
 | `src/index.ts` `version`            | version  | `"1.0.0"` — already drifted           |
-| `package.json` `mcpName`            | identity | `io.github.8ensmith/mcp-open-library` |
-| `server.json` `name`                | identity | `io.github.8ensmith/mcp-open-library` |
+| `package.json` `mcpName`            | identity | `io.github.8enSmith/mcp-open-library` |
+| `server.json` `name`                | identity | `io.github.8enSmith/mcp-open-library` |
 
 Drift either fails the publish or, worse, ships a listing that misrepresents the package. The design
 is chosen to make drift structurally impossible rather than merely detected.
@@ -47,7 +47,7 @@ against it.
 | Decision | Choice | Why |
 | --- | --- | --- |
 | Scope | Full release automation | Keeps npm and registry versions in lockstep forever, not just once |
-| Server name | `io.github.8ensmith/mcp-open-library` | Exactly matches repo and npm package name |
+| Server name | `io.github.8enSmith/mcp-open-library` | Exactly matches repo and npm package name |
 | npm auth | Trusted publishing (OIDC) | No stored credential; adds build provenance |
 | Registry auth | `mcp-publisher login github-oidc` | No stored credential |
 | Version sync | `npm version` lifecycle hook | Only approach where the repo cannot go inconsistent |
@@ -62,7 +62,7 @@ secrets at all.
 ```json
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.8ensmith/mcp-open-library",
+  "name": "io.github.8enSmith/mcp-open-library",
   "title": "Open Library",
   "description": "Search books and authors on the Internet Archive's Open Library",
   "version": "1.0.3",
@@ -87,7 +87,7 @@ or `packageArguments` — the server takes no configuration.
 
 ### `package.json` (changed)
 
-- Add `"mcpName": "io.github.8ensmith/mcp-open-library"`.
+- Add `"mcpName": "io.github.8enSmith/mcp-open-library"`.
 - Add a `version` lifecycle script:
 
   ```json
@@ -228,9 +228,17 @@ Both must happen before the first tag is pushed.
 1. **npm trusted publisher.** npmjs.com → `mcp-open-library` → Settings → Trusted publisher. Owner
    `8enSmith`, repo `mcp-open-library`, workflow `publish-mcp.yml`. Without this, the publish step
    fails.
-2. **Namespace pre-flight.** The GitHub login is mixed-case (`8enSmith`) but registry namespaces are
-   lowercase (`io.github.8ensmith`). The server name is permanent and unrenameable, so confirm it
-   rather than assume: run `mcp-publisher login github` locally and decode
+2. **Namespace pre-flight.** *Done — and it overturned an assumption.* This design originally
+   assumed registry namespaces were lowercased to `io.github.8ensmith`. They are not. The registry
+   builds the grant as `io.github.<owner>/*` from GitHub's login verbatim — `io.github.8enSmith/*`,
+   capital `S` — on both the access-token and OIDC paths (`internal/api/handlers/v0/auth/github_oidc.go:293`),
+   and matches it against the raw `server.json` name with a case-sensitive `strings.HasPrefix`
+   (`internal/auth/jwt.go:165-173`). The lowercased name would have been rejected — and because
+   `validate` does not check namespace permissions, the rejection would have landed at
+   `mcp-publisher publish`, after npm had already published immutably. The name is now
+   `io.github.8enSmith/mcp-open-library` everywhere.
+
+   To re-verify at any time: run `mcp-publisher login github` and decode
    `~/.config/mcp-publisher/token.json` to read the granted namespace claim.
 
 ## Rollout
@@ -243,7 +251,7 @@ Both must happen before the first tag is pushed.
 
    ```bash
    npm view mcp-open-library@1.0.3 mcpName
-   curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8ensmith/mcp-open-library"
+   curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8enSmith/mcp-open-library"
    ```
 
 ## Out of scope

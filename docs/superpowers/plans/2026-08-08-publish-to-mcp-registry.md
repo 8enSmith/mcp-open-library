@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** List `mcp-open-library` in the official MCP Registry as `io.github.8ensmith/mcp-open-library`, published by a secretless, tag-triggered pipeline that releases to npm and the registry together.
+**Goal:** List `mcp-open-library` in the official MCP Registry as `io.github.8enSmith/mcp-open-library`, published by a secretless, tag-triggered pipeline that releases to npm and the registry together.
 
 **Architecture:** `package.json` `version` is the single source of truth. An `npm version` lifecycle hook derives `server.json` from it; `src/index.ts` reads it at runtime; CI asserts every copy agrees before publishing anything. Both npm and the MCP registry authenticate over GitHub OIDC, so no credential is ever stored.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Server name is **`io.github.8ensmith/mcp-open-library`** — lowercase, permanent, must be byte-identical in `server.json` `name` and `package.json` `mcpName`.
+- Server name is **`io.github.8enSmith/mcp-open-library`** — permanent, must be byte-identical in `server.json` `name` and `package.json` `mcpName`. **The capital `S` is required.** The registry grants `io.github.<owner>/*` from GitHub's login verbatim and matches it with a case-sensitive `strings.HasPrefix` (`internal/auth/jwt.go:165-173`), so a lowercased name is rejected at publish time.
 - npm package name is **`mcp-open-library`**; it must equal `server.json` `packages[0].identifier`.
 - `server.json` `description` is capped at **100 characters** by the schema.
 - Schema URI is **`https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json`**.
@@ -55,11 +55,11 @@ import { checkReleaseConsistency } from "./assert-release-consistency.mjs";
 const pkg = {
   name: "mcp-open-library",
   version: "1.0.3",
-  mcpName: "io.github.8ensmith/mcp-open-library",
+  mcpName: "io.github.8enSmith/mcp-open-library",
 };
 
 const server = {
-  name: "io.github.8ensmith/mcp-open-library",
+  name: "io.github.8enSmith/mcp-open-library",
   version: "1.0.3",
   packages: [{ identifier: "mcp-open-library", version: "1.0.3" }],
 };
@@ -122,7 +122,7 @@ describe("checkReleaseConsistency", () => {
   it("reports a name/mcpName mismatch", () => {
     const problems = checkReleaseConsistency({
       pkg,
-      server: { ...server, name: "io.github.8ensmith/wrong-name" },
+      server: { ...server, name: "io.github.8enSmith/wrong-name" },
       tag: "v1.0.3",
     });
     expect(problems).toHaveLength(1);
@@ -143,7 +143,7 @@ describe("checkReleaseConsistency", () => {
     const problems = checkReleaseConsistency({
       pkg,
       server: {
-        name: "io.github.8ensmith/wrong-name",
+        name: "io.github.8enSmith/wrong-name",
         version: "1.0.1",
         packages: [{ identifier: "wrong-package", version: "1.0.2" }],
       },
@@ -269,7 +269,7 @@ Note the version is `1.0.2`, matching today's `package.json`. See Global Constra
 ```json
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.8ensmith/mcp-open-library",
+  "name": "io.github.8enSmith/mcp-open-library",
   "title": "Open Library",
   "description": "Search books and authors on the Internet Archive's Open Library",
   "version": "1.0.2",
@@ -294,7 +294,7 @@ Note the version is `1.0.2`, matching today's `package.json`. See Global Constra
 Insert immediately after the `"description"` line (`package.json:4`):
 
 ```json
-  "mcpName": "io.github.8ensmith/mcp-open-library",
+  "mcpName": "io.github.8enSmith/mcp-open-library",
 ```
 
 - [ ] **Step 3: Run the consistency checker against the real files**
@@ -342,7 +342,7 @@ import { describe, it, expect } from "vitest";
 
 import { syncServerJson } from "./sync-server-json.mjs";
 
-const mcpName = "io.github.8ensmith/mcp-open-library";
+const mcpName = "io.github.8enSmith/mcp-open-library";
 const packageName = "mcp-open-library";
 
 function makeServer() {
@@ -434,7 +434,7 @@ describe("syncServerJson", () => {
     expect(() =>
       syncServerJson(makeServer(), {
         version: "1.0.3",
-        mcpName: "io.github.8ensmith/something-else",
+        mcpName: "io.github.8enSmith/something-else",
         packageName,
       }),
     ).toThrow(/does not match/);
@@ -848,12 +848,12 @@ Insert directly under the `## Installation` heading, above `### Installing via S
 ### MCP Registry
 
 This server is listed in the [official MCP Registry](https://registry.modelcontextprotocol.io) as
-`io.github.8ensmith/mcp-open-library`. Clients that support the registry can install it by that name.
+`io.github.8enSmith/mcp-open-library`. Clients that support the registry can install it by that name.
 
 To inspect the published listing:
 
 ```bash
-curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8ensmith/mcp-open-library"
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8enSmith/mcp-open-library"
 ```
 ````
 
@@ -864,7 +864,7 @@ The file currently jumps from `1.0.1` straight back to `1.0.0` — the released 
 ```markdown
 ## [Unreleased]
 ### Added
-- Published to the official MCP Registry as `io.github.8ensmith/mcp-open-library`
+- Published to the official MCP Registry as `io.github.8enSmith/mcp-open-library`
 - Automated release pipeline: version tags publish to npm and the MCP Registry over OIDC
 
 ### Fixed
@@ -911,7 +911,7 @@ These steps are **not** part of the implementation and must not be run by an imp
    node -e "const t=require(require('os').homedir()+'/.config/mcp-publisher/token.json').token; console.log(JSON.parse(Buffer.from(t.split('.')[1],'base64url')))"
    ```
 
-   Expected: a permissions claim covering `io.github.8ensmith/*`. If it shows a different case, correct `server.json` `name` and `package.json` `mcpName` together before releasing.
+   Expected: a permissions claim covering `io.github.8enSmith/*` — note the capital `S`. This was run on 2026-08-09 and confirmed exactly that, overturning the original lowercase assumption. If it ever shows a different case, correct `server.json` `name` and `package.json` `mcpName` together before releasing.
 
 4. **Promote the changelog.** Rename `## [Unreleased]` to `## [1.0.3] - <today>`.
 
@@ -926,9 +926,9 @@ These steps are **not** part of the implementation and must not be run by an imp
 
    ```bash
    npm view mcp-open-library@1.0.3 mcpName
-   curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8ensmith/mcp-open-library"
+   curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8enSmith/mcp-open-library"
    ```
 
-   The first must print `io.github.8ensmith/mcp-open-library`; the second must return the listing.
+   The first must print `io.github.8enSmith/mcp-open-library`; the second must return the listing.
 
 If the registry step fails after npm succeeded, fix the cause and re-run the workflow from the Actions tab. The npm step self-skips, so the re-run picks up where it failed.

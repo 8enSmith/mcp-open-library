@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Published to the official MCP Registry as `io.github.8ensmith/mcp-open-library`
+- Published to the official MCP Registry as `io.github.8enSmith/mcp-open-library`
 - Automated release pipeline: version tags publish to npm and the MCP Registry over OIDC
 
 ### Fixed

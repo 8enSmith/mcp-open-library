@@ -28,13 +28,13 @@ This project implements an MCP server that provides tools for AI assistants to i
 ### MCP Registry
 
 This server publishes to the official MCP Registry as
-`io.github.8ensmith/mcp-open-library` from v1.0.3 onwards. Clients that
+`io.github.8enSmith/mcp-open-library` from v1.0.3 onwards. Clients that
 support the registry can install it by that name.
 
 To inspect the published listing:
 
 ```bash
-curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8ensmith/mcp-open-library"
+curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8enSmith/mcp-open-library"
 ```
 
 ### Installing via Smithery

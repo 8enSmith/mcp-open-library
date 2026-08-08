@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 
 import { syncServerJson } from "./sync-server-json.mjs";
 
-const mcpName = "io.github.8ensmith/mcp-open-library";
+const mcpName = "io.github.8enSmith/mcp-open-library";
 const packageName = "mcp-open-library";
 
 function makeServer() {
@@ -94,7 +94,7 @@ describe("syncServerJson", () => {
     expect(() =>
       syncServerJson(makeServer(), {
         version: "1.0.3",
-        mcpName: "io.github.8ensmith/something-else",
+        mcpName: "io.github.8enSmith/something-else",
         packageName,
       }),
     ).toThrow(/does not match/);

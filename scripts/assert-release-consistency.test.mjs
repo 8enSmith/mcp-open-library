@@ -5,11 +5,11 @@ import { checkReleaseConsistency } from "./assert-release-consistency.mjs";
 const pkg = {
   name: "mcp-open-library",
   version: "1.0.3",
-  mcpName: "io.github.8ensmith/mcp-open-library",
+  mcpName: "io.github.8enSmith/mcp-open-library",
 };
 
 const server = {
-  name: "io.github.8ensmith/mcp-open-library",
+  name: "io.github.8enSmith/mcp-open-library",
   version: "1.0.3",
   packages: [{ identifier: "mcp-open-library", version: "1.0.3" }],
 };
@@ -72,7 +72,7 @@ describe("checkReleaseConsistency", () => {
   it("reports a name/mcpName mismatch", () => {
     const problems = checkReleaseConsistency({
       pkg,
-      server: { ...server, name: "io.github.8ensmith/wrong-name" },
+      server: { ...server, name: "io.github.8enSmith/wrong-name" },
       tag: "v1.0.3",
     });
     expect(problems).toHaveLength(1);
@@ -93,7 +93,7 @@ describe("checkReleaseConsistency", () => {
     const problems = checkReleaseConsistency({
       pkg,
       server: {
-        name: "io.github.8ensmith/wrong-name",
+        name: "io.github.8enSmith/wrong-name",
         version: "1.0.1",
         packages: [{ identifier: "wrong-package", version: "1.0.2" }],
       },
