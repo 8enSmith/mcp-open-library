@@ -2,6 +2,7 @@
   "name": "mcp-open-library",
   "version": "1.0.2",
   "description": "MCP server for the Open Library",
+  "mcpName": "io.github.8ensmith/mcp-open-library",
   "private": false,
   "keywords": [
     "mcp",
