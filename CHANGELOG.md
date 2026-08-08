@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- Published to the official MCP Registry as `io.github.8ensmith/mcp-open-library`
+- Automated release pipeline: version tags publish to npm and the MCP Registry over OIDC
+
+### Fixed
+- Server now reports its real package version instead of a hardcoded `1.0.0`
+
+## [1.0.2] - 2026-02-04
+### Changed
+- Updated dependencies
+
 ## [1.0.1] - 2026-02-04
 ### Changed
 - Updated @modelcontextprotocol/sdk to v1.25.3 ([#30](https://github.com/8enSmith/mcp-open-library/pull/30))
