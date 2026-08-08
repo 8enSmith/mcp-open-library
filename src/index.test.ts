@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { readFileSync } from "node:fs";
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
@@ -49,6 +51,17 @@ describe("OpenLibraryServer", () => {
     // Get the mocked MCP Server instance created by the constructor
     mockMcpServer = (Server as any).mock.results[0].value;
     mockedAxios.create.mockReturnThis(); // Ensure axios.create() returns the mocked instance
+  });
+
+  it("reports the version from package.json", () => {
+    const pkg = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { version: string };
+
+    const [implementation] = (Server as any).mock.calls[0];
+
+    expect(implementation.version).toBe(pkg.version);
+    expect(implementation.name).toBe("open-library-server");
   });
 
   describe("get_book_by_title tool", () => {
