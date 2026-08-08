@@ -633,6 +633,12 @@ git commit -m "fix: report the real package version instead of a hardcoded 1.0.0
 
 ### Task 5: Release workflow
 
+> **⚠️ Superseded — do not copy the YAML below.** `.github/workflows/publish-mcp.yml` as shipped is
+> authoritative. Post-review changes: `mcp-publisher` install and `validate` moved *before*
+> `npm publish` so a registry-side failure cannot leave npm published without a listing; the binary
+> is pinned to `v1.8.1` and checksum-verified instead of piping `releases/latest` into `tar`; and the
+> download block sets `set -euo pipefail` with `curl --fail`.
+
 **Files:**
 
 - Create: `.github/workflows/publish-mcp.yml`
@@ -750,6 +756,12 @@ git commit -m "ci: publish to npm and the MCP registry on version tags"
 ---
 
 ### Task 6: Pull-request validation workflow
+
+> **⚠️ Superseded — do not copy the YAML below.** `.github/workflows/validate-server-json.yml` as
+> shipped is authoritative. Post-review changes: the `mcp-publisher` binary is pinned to `v1.8.1` and
+> checksum-verified rather than pulled from `releases/latest`; the download block sets
+> `set -euo pipefail` with `curl --fail`; and `CHANGELOG.md` was added to the `paths` filter once the
+> consistency checker began reading it.
 
 Catches a malformed listing before a tag is cut. Independently droppable — if you would rather rely solely on the tag-time assertion in Task 5, skip this task entirely; nothing else depends on it.
 
@@ -911,7 +923,7 @@ These steps are **not** part of the implementation and must not be run by an imp
    node -e "const t=require(require('os').homedir()+'/.config/mcp-publisher/token.json').token; console.log(JSON.parse(Buffer.from(t.split('.')[1],'base64url')))"
    ```
 
-   Expected: a permissions claim covering `io.github.8enSmith/*` — note the capital `S`. This was run on 2026-08-09 and confirmed exactly that, overturning the original lowercase assumption. If it ever shows a different case, correct `server.json` `name` and `package.json` `mcpName` together before releasing.
+   Expected: a permissions claim covering `io.github.8enSmith/*` — note the capital `S`. This was run against the live registry during implementation and returned exactly that, overturning the original lowercase assumption; the resulting correction is commit `368b4b6`. If it ever shows a different case, correct `server.json` `name` and `package.json` `mcpName` together before releasing.
 
 4. **Check `CHANGELOG.md` has a `## [Unreleased]` section** describing this release. Promoting it to
    `## [1.0.3] - <today>` is now automatic — `scripts/promote-changelog.mjs` runs from the `version`

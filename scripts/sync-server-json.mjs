@@ -13,7 +13,9 @@ export function syncServerJson(server, { version, mcpName, packageName }) {
     ...server,
     version,
     packages: server.packages.map((entry) =>
-      entry.identifier === packageName ? { ...entry, version } : entry,
+      entry.registryType === "npm" && entry.identifier === packageName
+        ? { ...entry, version }
+        : entry,
     ),
   };
 }

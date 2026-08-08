@@ -27,6 +27,11 @@ export default defineConfig([{
 
     languageOptions: {
         parser: tsParser,
+        globals: {
+            console: "readonly",
+            process: "readonly",
+            URL: "readonly",
+        },
     },
 
     rules: {

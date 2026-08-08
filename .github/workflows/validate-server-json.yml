@@ -39,16 +39,20 @@ jobs:
         env:
           MCP_PUBLISHER_VERSION: v1.8.1
         run: |
+          # The default run: shell is `bash -e`, which does NOT set pipefail —
+          # set it explicitly so a failed grep cannot feed empty input forward.
+          set -euo pipefail
+
           OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
           ARCH="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
           ASSET="mcp-publisher_${OS}_${ARCH}.tar.gz"
           CHECKSUMS="registry_${MCP_PUBLISHER_VERSION#v}_checksums.txt"
           BASE_URL="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
 
-          curl -sL -O "${BASE_URL}/${ASSET}"
-          curl -sL -O "${BASE_URL}/${CHECKSUMS}"
+          curl --fail --silent --show-error --location -O "${BASE_URL}/${ASSET}"
+          curl --fail --silent --show-error --location -O "${BASE_URL}/${CHECKSUMS}"
 
-          grep " ${ASSET}\$" "${CHECKSUMS}" | sha256sum --check --ignore-missing
+          awk -v asset="${ASSET}" '$2 == asset' "${CHECKSUMS}" | sha256sum --check --strict
 
           tar xzf "${ASSET}" mcp-publisher
 

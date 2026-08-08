@@ -65,6 +65,25 @@ describe("syncServerJson", () => {
     expect(result.packages[1].version).toBe("9.9.9");
   });
 
+  it("leaves a same-identifier entry under another registry untouched", () => {
+    const server = makeServer();
+    server.packages.push({
+      registryType: "nuget",
+      identifier: packageName,
+      version: "9.9.9",
+      transport: { type: "stdio" },
+    });
+
+    const result = syncServerJson(server, {
+      version: "1.0.3",
+      mcpName,
+      packageName,
+    });
+
+    expect(result.packages[0].version).toBe("1.0.3");
+    expect(result.packages[1].version).toBe("9.9.9");
+  });
+
   it("preserves every unrelated field", () => {
     const server = makeServer();
     const result = syncServerJson(server, {

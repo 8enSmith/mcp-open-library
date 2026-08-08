@@ -37,8 +37,8 @@
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "test": "vitest",
     "format": "prettier --write src/**/*.ts",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
+    "lint": "eslint src scripts",
+    "lint:fix": "eslint src scripts --fix",
     "test:precommit": "vitest run"
   },
   "dependencies": {

@@ -91,11 +91,15 @@ or `packageArguments` — the server takes no configuration.
 - Add a `version` lifecycle script:
 
   ```json
-  "version": "node scripts/sync-server-json.mjs && git add server.json"
+  "version": "node scripts/sync-server-json.mjs && node scripts/promote-changelog.mjs && git add server.json CHANGELOG.md"
   ```
 
   npm runs this after bumping the version and before creating the commit, so `npm version patch`
   yields one commit and tag with every file already consistent.
+
+  The changelog promotion was added after the original design: leaving it manual meant npm and the
+  registry could say `1.0.3` while `CHANGELOG.md` still read `## [Unreleased]`. See
+  `scripts/promote-changelog.mjs`.
 
 ### `scripts/sync-server-json.mjs` (new)
 
