@@ -14,9 +14,50 @@ const server = {
   packages: [{ identifier: "mcp-open-library", version: "1.0.3" }],
 };
 
+const changelog = `# Changelog
+
+## [1.0.3] - 2026-08-09
+### Added
+- The thing
+
+## [1.0.2] - 2026-02-04
+### Changed
+- Updated dependencies
+`;
+
 describe("checkReleaseConsistency", () => {
   it("returns no problems when everything agrees", () => {
     expect(checkReleaseConsistency({ pkg, server, tag: "v1.0.3" })).toEqual([]);
+  });
+
+  it("returns no problems when the changelog has an entry for the version", () => {
+    expect(
+      checkReleaseConsistency({ pkg, server, tag: "v1.0.3", changelog }),
+    ).toEqual([]);
+  });
+
+  it("skips the changelog check when no changelog is supplied", () => {
+    expect(checkReleaseConsistency({ pkg, server, tag: "v1.0.3" })).toEqual([]);
+  });
+
+  it("reports a changelog with no entry for the version being released", () => {
+    const problems = checkReleaseConsistency({
+      pkg,
+      server,
+      tag: "v1.0.3",
+      changelog: `# Changelog
+
+## [Unreleased]
+### Added
+- Forgot to promote this before releasing
+
+## [1.0.2] - 2026-02-04
+`,
+    });
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("CHANGELOG.md");
+    expect(problems[0]).toContain("1.0.3");
   });
 
   it("skips the tag check when no tag is supplied", () => {

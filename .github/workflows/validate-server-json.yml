@@ -5,6 +5,7 @@ on:
     paths:
       - server.json
       - package.json
+      - CHANGELOG.md
       - scripts/**
       - .github/workflows/validate-server-json.yml
 

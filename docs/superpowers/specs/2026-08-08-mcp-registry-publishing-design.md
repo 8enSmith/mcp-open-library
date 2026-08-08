@@ -246,8 +246,10 @@ Both must happen before the first tag is pushed.
 1. Land the repo changes via PR. Nothing publishes — the workflow is tag-only.
 2. Configure the npm trusted publisher.
 3. Run the namespace pre-flight.
-4. `npm version patch` → `git push --follow-tags`.
-5. Verify:
+4. Confirm `CHANGELOG.md` has a `## [Unreleased]` section describing the release. The `version` hook
+   promotes it to `## [<version>] - <date>` automatically and fails the bump if it is missing.
+5. `npm version patch` → `git push --follow-tags`.
+6. Verify:
 
    ```bash
    npm view mcp-open-library@1.0.3 mcpName

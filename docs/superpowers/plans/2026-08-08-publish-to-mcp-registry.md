@@ -913,7 +913,10 @@ These steps are **not** part of the implementation and must not be run by an imp
 
    Expected: a permissions claim covering `io.github.8enSmith/*` — note the capital `S`. This was run on 2026-08-09 and confirmed exactly that, overturning the original lowercase assumption. If it ever shows a different case, correct `server.json` `name` and `package.json` `mcpName` together before releasing.
 
-4. **Promote the changelog.** Rename `## [Unreleased]` to `## [1.0.3] - <today>`.
+4. **Check `CHANGELOG.md` has a `## [Unreleased]` section** describing this release. Promoting it to
+   `## [1.0.3] - <today>` is now automatic — `scripts/promote-changelog.mjs` runs from the `version`
+   lifecycle hook. `npm version` fails if the heading is missing rather than releasing something
+   undocumented. The canonical runbook now lives in the README's Development → Releasing section.
 
 5. **Cut the release:**
 

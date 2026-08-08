@@ -1,7 +1,7 @@
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-export function checkReleaseConsistency({ pkg, server, tag }) {
+export function checkReleaseConsistency({ pkg, server, tag, changelog }) {
   const problems = [];
   const version = pkg.version;
 
@@ -43,6 +43,12 @@ export function checkReleaseConsistency({ pkg, server, tag }) {
     );
   }
 
+  if (changelog !== undefined && !changelog.includes(`## [${version}]`)) {
+    problems.push(
+      `CHANGELOG.md has no "## [${version}]" entry for package.json version "${version}"`,
+    );
+  }
+
   return problems;
 }
 
@@ -60,6 +66,10 @@ if (
     pkg: readJson("../package.json"),
     server: readJson("../server.json"),
     tag: process.argv[2],
+    changelog: readFileSync(
+      new URL("../CHANGELOG.md", import.meta.url),
+      "utf8",
+    ),
   });
 
   if (problems.length > 0) {

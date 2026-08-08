@@ -275,6 +275,37 @@ npm run inspector http://localhost:8080
 npm test
 ```
 
+### Releasing
+
+Releases are automated. Pushing a `v*` tag triggers
+[`publish-mcp.yml`](.github/workflows/publish-mcp.yml), which runs the checks, publishes the package
+to npm, and then registers the new version with the MCP Registry. Both npm and the registry
+authenticate over GitHub OIDC, so there are no publishing secrets to manage.
+
+`package.json`'s `version` is the single source of truth. `npm version` derives everything else from
+it via a `version` lifecycle hook, so a release is one command:
+
+```bash
+npm version patch   # or minor / major
+git push --follow-tags
+```
+
+That single command bumps `package.json`, rewrites `server.json` to match, promotes the changelog's
+`## [Unreleased]` heading to the new version and today's date, and commits the lot under one tag.
+
+Two things to know before you run it:
+
+- **Write your changelog entries first.** They go under a `## [Unreleased]` heading in
+  [`CHANGELOG.md`](CHANGELOG.md) as you merge work. `npm version` fails if that heading is missing,
+  rather than releasing something undocumented. If it does fail, undo the partial bump with
+  `git restore --source=HEAD --staged --worktree package.json package-lock.json server.json`.
+- **The working tree must be clean**, and the pre-commit hook (lint + full test suite) runs inside
+  `npm version`.
+
+CI re-asserts that the tag, `package.json`, `server.json` and `CHANGELOG.md` all agree before
+anything is published — see `scripts/assert-release-consistency.mjs`. The same check runs on pull
+requests that touch those files.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a pull request.
