@@ -635,8 +635,11 @@ git commit -m "fix: report the real package version instead of a hardcoded 1.0.0
 
 > **⚠️ Superseded — do not copy the YAML below.** `.github/workflows/publish-mcp.yml` as shipped is
 > authoritative. Post-review changes: `mcp-publisher` install and `validate` moved *before*
-> `npm publish` so a registry-side failure cannot leave npm published without a listing; the binary
-> is pinned to `v1.8.1` and checksum-verified instead of piping `releases/latest` into `tar`; and the
+> `npm publish`, so a malformed listing is caught before npm publishes irreversibly. That narrows the
+> partial-release window but does not close it — `login github-oidc` and `publish` still run after
+> npm, so a registry-side failure there can still leave npm published without a listing; the guarded
+> `npm publish` step is what makes re-running the workflow safe in that case. The binary is also
+> pinned to `v1.8.1` and checksum-verified instead of piping `releases/latest` into `tar`, and the
 > download block sets `set -euo pipefail` with `curl --fail`.
 
 **Files:**

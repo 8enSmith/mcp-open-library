@@ -163,7 +163,9 @@ Steps:
 6. `npm run test:precommit`
 7. `npm run build`
 8. `node scripts/assert-release-consistency.mjs "$GITHUB_REF_NAME"`
-9. Install `mcp-publisher` → `validate` (before npm publish, so a registry-side failure never leaves npm published without a listing)
+9. Install `mcp-publisher` → `validate` (before npm publish, so a malformed listing is caught before
+   npm publishes irreversibly — `login` and `publish` still run after npm, so a failure there can
+   still strand npm ahead of the registry; the guarded npm step makes the re-run safe)
 10. Guarded `npm publish`
 11. Poll npm until the new version is served
 12. `login github-oidc` → `publish`
