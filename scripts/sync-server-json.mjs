@@ -1,4 +1,5 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 export function syncServerJson(server, { version, mcpName, packageName }) {
   if (server.name !== mcpName) {
@@ -17,7 +18,10 @@ export function syncServerJson(server, { version, mcpName, packageName }) {
   };
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+if (
+  process.argv[1] &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const serverUrl = new URL("../server.json", import.meta.url);
   const pkg = JSON.parse(
     readFileSync(new URL("../package.json", import.meta.url), "utf8"),

@@ -21,7 +21,7 @@
 - Workflows that publish need **`id-token: write`** — one permission covers both npm OIDC and `mcp-publisher login github-oidc`.
 - **`server.json` is committed at version `1.0.2`, matching today's `package.json`.** The spec shows `1.0.3` because that is what ships; the bump to `1.0.3` happens later via `npm version patch`. Committing `1.0.3` now would make the Task 1 checker fail on every PR.
 - New scripts are plain `.mjs`, not TypeScript. The `version` hook must run before any build step exists, so these files cannot depend on `tsc` output.
-- Scripts follow the existing direct-invocation idiom from `src/index.ts:75`: `if (process.argv[1] === new URL(import.meta.url).pathname)`.
+- Scripts use `if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url))` to detect direct invocation, not the `src/index.ts:75` idiom (`process.argv[1] === new URL(import.meta.url).pathname`) — that comparison fails open (silently exits 0) when the checkout path contains a space or is reached via a symlink, which is unacceptable for a release gate. `src/index.ts` keeps its existing idiom; it is out of scope here.
 - ESLint enforces `import/order` with `newlines-between: always`. `node:` builtins go in the first group, followed by a blank line.
 - Conventional commits (the repo uses commitizen).
 

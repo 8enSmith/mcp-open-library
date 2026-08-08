@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 export function checkReleaseConsistency({ pkg, server, tag }) {
   const problems = [];
@@ -51,7 +52,10 @@ function readJson(relativePath) {
   );
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+if (
+  process.argv[1] &&
+  realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const problems = checkReleaseConsistency({
     pkg: readJson("../package.json"),
     server: readJson("../server.json"),
