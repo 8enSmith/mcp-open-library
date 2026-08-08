@@ -159,9 +159,10 @@ Steps:
 6. `npm run test:precommit`
 7. `npm run build`
 8. `node scripts/assert-release-consistency.mjs "$GITHUB_REF_NAME"`
-9. Guarded `npm publish`
-10. Poll npm until the new version is served
-11. Install `mcp-publisher`, then `validate` → `login github-oidc` → `publish`
+9. Install `mcp-publisher` → `validate` (before npm publish, so a registry-side failure never leaves npm published without a listing)
+10. Guarded `npm publish`
+11. Poll npm until the new version is served
+12. `login github-oidc` → `publish`
 
 ### `.github/workflows/validate-server-json.yml` (new)
 

@@ -40,6 +40,28 @@ jobs:
       - name: Assert release metadata is consistent
         run: node scripts/assert-release-consistency.mjs "${GITHUB_REF_NAME}"
 
+      # mcp-publisher release version. Bump periodically; see
+      # https://github.com/modelcontextprotocol/registry/releases
+      - name: Install mcp-publisher
+        env:
+          MCP_PUBLISHER_VERSION: v1.8.1
+        run: |
+          OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+          ARCH="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
+          ASSET="mcp-publisher_${OS}_${ARCH}.tar.gz"
+          CHECKSUMS="registry_${MCP_PUBLISHER_VERSION#v}_checksums.txt"
+          BASE_URL="https://github.com/modelcontextprotocol/registry/releases/download/${MCP_PUBLISHER_VERSION}"
+
+          curl -sL -O "${BASE_URL}/${ASSET}"
+          curl -sL -O "${BASE_URL}/${CHECKSUMS}"
+
+          grep " ${ASSET}\$" "${CHECKSUMS}" | sha256sum --check --ignore-missing
+
+          tar xzf "${ASSET}" mcp-publisher
+
+      - name: Validate server.json
+        run: ./mcp-publisher validate
+
       - name: Publish package to npm
         run: |
           VERSION="$(node -p "require('./package.json').version")"
@@ -62,13 +84,6 @@ jobs:
           done
           echo "Timed out waiting for mcp-open-library@${VERSION} to appear on npm." >&2
           exit 1
-
-      - name: Install mcp-publisher
-        run: |
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
-
-      - name: Validate server.json
-        run: ./mcp-publisher validate
 
       - name: Authenticate to MCP Registry
         run: ./mcp-publisher login github-oidc
