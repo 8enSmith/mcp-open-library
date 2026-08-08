@@ -1,0 +1,77 @@
+name: Publish to MCP Registry
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # npm trusted publishing AND mcp-publisher OIDC
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test:precommit
+
+      - name: Build
+        run: npm run build
+
+      - name: Assert release metadata is consistent
+        run: node scripts/assert-release-consistency.mjs "${GITHUB_REF_NAME}"
+
+      - name: Publish package to npm
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if npm view "mcp-open-library@${VERSION}" version >/dev/null 2>&1; then
+            echo "mcp-open-library@${VERSION} is already on npm, skipping publish."
+          else
+            npm publish
+          fi
+
+      - name: Wait for npm to serve the new version
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          for attempt in $(seq 1 12); do
+            if npm view "mcp-open-library@${VERSION}" version >/dev/null 2>&1; then
+              echo "mcp-open-library@${VERSION} is visible on npm."
+              exit 0
+            fi
+            echo "Attempt ${attempt}/12: not visible yet, retrying in 5s..."
+            sleep 5
+          done
+          echo "Timed out waiting for mcp-open-library@${VERSION} to appear on npm." >&2
+          exit 1
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+
+      - name: Validate server.json
+        run: ./mcp-publisher validate
+
+      - name: Authenticate to MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server to MCP Registry
+        run: ./mcp-publisher publish
