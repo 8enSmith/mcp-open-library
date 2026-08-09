@@ -1,6 +1,6 @@
 {
   "name": "mcp-open-library",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "MCP server for the Open Library",
   "mcpName": "io.github.8enSmith/mcp-open-library",
   "private": false,
