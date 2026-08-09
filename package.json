@@ -2,6 +2,7 @@
   "name": "mcp-open-library",
   "version": "1.0.2",
   "description": "MCP server for the Open Library",
+  "mcpName": "io.github.8enSmith/mcp-open-library",
   "private": false,
   "keywords": [
     "mcp",
@@ -30,13 +31,14 @@
   ],
   "scripts": {
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "version": "node scripts/sync-server-json.mjs && node scripts/promote-changelog.mjs && git add server.json CHANGELOG.md",
     "prepare": "npm run build",
     "watch": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "test": "vitest",
     "format": "prettier --write src/**/*.ts",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
+    "lint": "eslint src scripts",
+    "lint:fix": "eslint src scripts --fix",
     "test:precommit": "vitest run"
   },
   "dependencies": {

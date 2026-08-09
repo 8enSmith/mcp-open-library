@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -18,6 +20,10 @@ import {
   handleGetBookById,
 } from "./tools/index.js";
 
+const pkg = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+) as { version: string };
+
 class OpenLibraryServer {
   private server: Server;
   private axiosInstance;
@@ -26,7 +32,7 @@ class OpenLibraryServer {
     this.server = new Server(
       {
         name: "open-library-server",
-        version: "1.0.0",
+        version: pkg.version,
       },
       {
         capabilities: {
