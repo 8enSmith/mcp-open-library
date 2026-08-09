@@ -258,22 +258,48 @@ npm run inspector http://localhost:8080
 
 ### Project Structure
 
-- `src/index.ts` - Main server implementation
-- `src/types.ts` - TypeScript type definitions
-- `src/index.test.ts` - Test suite
+- `src/index.ts` - The MCP server: lists the tools and dispatches tool calls
+- `src/index.test.ts` - Tests for the server wiring
+- `src/tools/<tool-name>/` - One directory per tool, each containing `index.ts` (the
+  handler and its Zod argument schema), `index.test.ts`, and — for tools that call the
+  Open Library API — a `types.ts` describing the response shape
+- `src/tools/index.ts` - Re-exports every tool handler
+- `scripts/` - Release automation (`sync-server-json.mjs`, `promote-changelog.mjs`,
+  `assert-release-consistency.mjs`) and its tests
+
+Each tool declares its input schema twice: as JSON Schema in the `ListTools` handler in
+`src/index.ts`, which is what MCP clients see, and as a Zod schema in the tool's own
+`index.ts`, which is what validates incoming arguments. Keep the two in step.
 
 ### Available Scripts
 
 - `npm run build` - Build the TypeScript code
 - `npm run watch` - Watch for changes and rebuild
-- `npm test` - Run the test suite
+- `npm test` - Run the test suite in watch mode
+- `npm run test:precommit` - Run the test suite once and exit
+- `npm run lint` / `npm run lint:fix` - Lint `src` and `scripts` with ESLint
 - `npm run format` - Format code with Prettier
 - `npm run inspector` - Run the MCP Inspector against the server
 
 ### Running Tests
 
+`npm test` starts Vitest in watch mode:
+
 ```bash
 npm test
+```
+
+For a single pass — what the pre-commit hook and CI run — use:
+
+```bash
+npm run test:precommit
+```
+
+To run one file or one test case:
+
+```bash
+npx vitest run src/tools/get-book-by-id/index.test.ts
+npx vitest run -t "should return book details when given a valid OLID"
 ```
 
 ### Releasing
@@ -310,7 +336,7 @@ requests that touch those files.
 
 #### `npm version` is not a retry
 
-Once it prints `v1.0.3`, the commit and tag exist and the release is done locally — the next step is
+Once it prints the new tag, the commit and tag exist and the release is done locally — the next step is
 `git push --follow-tags`, **not** running `npm version` again. A second run attempts the *next*
 version, and will fail on the missing `## [Unreleased]` heading (which the first run consumed). That
 failure is safe by design, but it leaves `package.json`, `package-lock.json` and `server.json`
@@ -331,15 +357,17 @@ version is still free and you can move the tag:
 
 ```bash
 # fix the problem on main and commit it first
-git push origin :v1.0.3          # delete the remote tag
-git tag -d v1.0.3                # delete it locally
-git tag -a v1.0.3 -m "1.0.3"     # re-tag at the fixed commit
-git push origin v1.0.3
+VERSION="$(node -p "require('./package.json').version")"
+
+git push origin ":v${VERSION}"            # delete the remote tag e.g. git push origin :v1.0.3
+git tag -d "v${VERSION}"                  # delete it locally
+git tag -a "v${VERSION}" -m "${VERSION}"  # re-tag at the fixed commit
+git push origin "v${VERSION}"
 ```
 
-`package.json` must still read `1.0.3` at that commit, or the consistency check will reject it. If
-npm *did* already publish, do not reuse the version — that release is immutable. Bump to the next
-patch instead; the guarded npm step means a re-run skips what already succeeded.
+The fix commit must leave `package.json` on that same version, or the consistency check will reject
+the tag. If npm *did* already publish, do not reuse the version — that release is immutable. Bump to
+the next patch instead; the guarded npm step means a re-run skips what already succeeded.
 
 ## Contributing
 
