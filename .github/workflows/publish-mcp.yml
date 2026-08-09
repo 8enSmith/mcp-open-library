@@ -98,3 +98,44 @@ jobs:
 
       - name: Publish server to MCP Registry
         run: ./mcp-publisher publish
+
+  # Deliberately a separate job: creating a Release needs `contents: write`,
+  # and the publish job above should not hold repo write access alongside its
+  # npm and registry publishing rights. This job runs only if publishing
+  # succeeded, and a failure here leaves the actual release intact.
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # Pull this version's section out of the changelog: everything after
+          # its heading, up to the next `## [` heading.
+          awk -v v="## [${VERSION}]" '
+            index($0, v) == 1 { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ -s release-notes.md ]; then
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "${GITHUB_REF_NAME}" \
+              --notes-file release-notes.md
+          else
+            echo "No CHANGELOG section for ${VERSION}; falling back to generated notes." >&2
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "${GITHUB_REF_NAME}" \
+              --generate-notes
+          fi

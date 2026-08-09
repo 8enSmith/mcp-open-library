@@ -280,8 +280,9 @@ npm test
 
 Releases are automated. Pushing a `v*` tag triggers
 [`publish-mcp.yml`](.github/workflows/publish-mcp.yml), which runs the checks, publishes the package
-to npm, and then registers the new version with the MCP Registry. Both npm and the registry
-authenticate over GitHub OIDC, so there are no publishing secrets to manage.
+to npm, registers the new version with the MCP Registry, and then creates a GitHub Release using
+that version's `CHANGELOG.md` section as the notes. Both npm and the registry authenticate over
+GitHub OIDC, so there are no publishing secrets to manage.
 
 `package.json`'s `version` is the single source of truth. `npm version` derives everything else from
 it via a `version` lifecycle hook, so a release is one command:
