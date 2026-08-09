@@ -23,7 +23,11 @@ jobs:
           package-manager-cache: false
 
       - name: Upgrade npm for trusted publishing
-        run: npm install -g npm@latest
+        # Node 22 ships npm 10.x; trusted publishing needs >= 11.5.1.
+        # Pinned, not `npm@latest`: npm 12 requires Node >= 22.22.2 and would
+        # fail against the Node pinned in .nvmrc. Bump both together, or this
+        # pin alone when a newer npm 11.x is wanted.
+        run: npm install -g npm@11.19.0
 
       - name: Install dependencies
         run: npm ci

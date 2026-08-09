@@ -306,6 +306,39 @@ CI re-asserts that the tag, `package.json`, `server.json` and `CHANGELOG.md` all
 anything is published — see `scripts/assert-release-consistency.mjs`. The same check runs on pull
 requests that touch those files.
 
+#### `npm version` is not a retry
+
+Once it prints `v1.0.3`, the commit and tag exist and the release is done locally — the next step is
+`git push --follow-tags`, **not** running `npm version` again. A second run attempts the *next*
+version, and will fail on the missing `## [Unreleased]` heading (which the first run consumed). That
+failure is safe by design, but it leaves `package.json`, `package-lock.json` and `server.json`
+bumped and uncommitted. Undo with:
+
+```bash
+git restore --source=HEAD --staged --worktree package.json package-lock.json server.json
+```
+
+#### If the publish workflow fails
+
+Re-running the job from the Actions tab only helps for a transient failure. GitHub runs the workflow
+**as it existed at the tagged commit**, so a bug in the workflow itself or in `server.json` cannot be
+fixed by a re-run — the fix has to be in the commit the tag points at.
+
+Nothing is published until the workflow reaches its npm step, so if it failed before then, the
+version is still free and you can move the tag:
+
+```bash
+# fix the problem on main and commit it first
+git push origin :v1.0.3          # delete the remote tag
+git tag -d v1.0.3                # delete it locally
+git tag -a v1.0.3 -m "1.0.3"     # re-tag at the fixed commit
+git push origin v1.0.3
+```
+
+`package.json` must still read `1.0.3` at that commit, or the consistency check will reject it. If
+npm *did* already publish, do not reuse the version — that release is immutable. Bump to the next
+patch instead; the guarded npm step means a re-run skips what already succeeded.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a pull request.
