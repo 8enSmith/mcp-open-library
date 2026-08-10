@@ -42,10 +42,6 @@ class OpenLibraryServer {
     this.setupToolHandlers();
 
     this.server.onerror = (error) => console.error("[MCP Error]", error);
-    process.on("SIGINT", async () => {
-      await this.server.close();
-      process.exit(0);
-    });
   }
 
   private setupToolHandlers() {
@@ -78,9 +74,19 @@ class OpenLibraryServer {
     });
   }
 
+  // Registered here rather than in the constructor: the handler exists to close
+  // a connected transport, and a process-wide listener is a side effect that
+  // merely constructing the server should not have. Tests build one per case,
+  // which accumulated listeners past Node's warning threshold.
   async run() {
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
+
+    process.on("SIGINT", async () => {
+      await this.server.close();
+      process.exit(0);
+    });
+
     console.error("Open Library MCP server running on stdio");
   }
 }

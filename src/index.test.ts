@@ -76,6 +76,17 @@ describe("OpenLibraryServer", () => {
     vi.restoreAllMocks();
   });
 
+  // Signal handling belongs to run(), not construction. The suite builds a
+  // server per test, so a listener registered in the constructor accumulated
+  // once per case and tripped Node's max-listeners warning.
+  it("does not register a process listener when constructed", () => {
+    const before = process.listenerCount("SIGINT");
+
+    new OpenLibraryServer();
+
+    expect(process.listenerCount("SIGINT")).toBe(before);
+  });
+
   it("reports the version from package.json", () => {
     const pkg = JSON.parse(
       readFileSync(new URL("../package.json", import.meta.url), "utf8"),
