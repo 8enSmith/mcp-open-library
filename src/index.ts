@@ -31,7 +31,6 @@ class OpenLibraryServer {
       },
       {
         capabilities: {
-          resources: {},
           tools: {},
         },
       },
