@@ -3,7 +3,7 @@
   "name": "io.github.8enSmith/mcp-open-library",
   "title": "Open Library",
   "description": "Search books and authors on the Internet Archive's Open Library",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "websiteUrl": "https://github.com/8enSmith/mcp-open-library#readme",
   "repository": {
     "url": "https://github.com/8enSmith/mcp-open-library",
@@ -13,7 +13,7 @@
     {
       "registryType": "npm",
       "identifier": "mcp-open-library",
-      "version": "1.0.3",
+      "version": "1.1.0",
       "transport": {
         "type": "stdio"
       }
