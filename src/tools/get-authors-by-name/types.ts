@@ -25,3 +25,10 @@ export interface AuthorInfo {
   top_work?: string;
   work_count: number;
 }
+
+export interface AuthorSearchResults {
+  num_found: number;
+  offset: number;
+  limit: number;
+  results: AuthorInfo[];
+}

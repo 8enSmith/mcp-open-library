@@ -38,8 +38,7 @@ const handleGetAuthorInfo: ToolHandler = async (args, clients) => {
 
     const authorData = { ...response.data };
     if (typeof authorData.bio === "object" && authorData.bio !== null) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      authorData.bio = (authorData.bio as any).value;
+      authorData.bio = authorData.bio.value;
     }
 
     return jsonResult(authorData);

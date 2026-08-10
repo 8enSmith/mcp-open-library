@@ -9,10 +9,11 @@ import {
   ErrorCode,
 } from "@modelcontextprotocol/sdk/types.js";
 import axios from "axios";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Mock } from "vitest";
 
-import { TOOLS } from "./tools/registry.js";
+import { TOOLS, TOOLS_BY_NAME } from "./tools/registry.js";
+import { COVERS_BASE_URL } from "./utils/http.js";
 import { SEARCH_FIELDS } from "./utils/search.js";
 
 import { OpenLibraryServer } from "./index.js";
@@ -41,6 +42,8 @@ describe("OpenLibraryServer", () => {
     close: Mock<() => Promise<void>>;
     onerror: Mock<(error: any) => void>;
   };
+  let apiClient: { get: Mock; head: Mock };
+  let coversClient: { get: Mock; head: Mock };
 
   function getHandler(schema: unknown) {
     const handler = mockMcpServer.setRequestHandler.mock.calls.find(
@@ -56,11 +59,21 @@ describe("OpenLibraryServer", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    // Both clients are created in the constructor, so the return value has to
-    // be in place before the server is built.
-    mockedAxios.create.mockReturnThis();
+    apiClient = { get: vi.fn(), head: vi.fn() };
+    coversClient = { get: vi.fn(), head: vi.fn() };
+    // Both clients are created in the constructor, so this has to be in place
+    // before the server is built. They are kept distinct so that a tool
+    // reaching for the wrong host fails the assertions rather than passing.
+    mockedAxios.create.mockImplementation(((config?: { baseURL?: string }) =>
+      config?.baseURL === COVERS_BASE_URL ? coversClient : apiClient) as any);
     new OpenLibraryServer();
     mockMcpServer = (Server as any).mock.results[0].value;
+  });
+
+  afterEach(() => {
+    // clearAllMocks resets calls but leaves spies installed, so the
+    // console.error stub below would otherwise outlive its test.
+    vi.restoreAllMocks();
   });
 
   it("reports the version from package.json", () => {
@@ -119,13 +132,13 @@ describe("OpenLibraryServer", () => {
 
   describe("CallTool", () => {
     it("routes search_books to the Open Library search endpoint", async () => {
-      mockedAxios.get.mockResolvedValue({
+      apiClient.get.mockResolvedValue({
         data: { numFound: 1, docs: [{ title: "Dune", key: "/works/OL1W" }] },
       });
 
       const result = await callTool("search_books", { q: "dune", limit: 1 });
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/search.json", {
+      expect(apiClient.get).toHaveBeenCalledWith("/search.json", {
         params: { fields: SEARCH_FIELDS, limit: 1, offset: 0, q: "dune" },
       });
       expect(result.isError).toBeUndefined();
@@ -143,17 +156,22 @@ describe("OpenLibraryServer", () => {
           work_count: 150,
         },
       ];
-      mockedAxios.get.mockResolvedValue({ data: { docs } });
+      apiClient.get.mockResolvedValue({ data: { numFound: 1, docs } });
 
       const result = await callTool("get_authors_by_name", {
         name: "J. R. R. Tolkien",
       });
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/search/authors.json", {
-        params: { q: "J. R. R. Tolkien" },
+      expect(apiClient.get).toHaveBeenCalledWith("/search/authors.json", {
+        params: { q: "J. R. R. Tolkien", limit: 10, offset: 0 },
       });
       expect(result.isError).toBeUndefined();
-      expect(JSON.parse(result.content[0].text)).toEqual(docs);
+      expect(JSON.parse(result.content[0].text)).toEqual({
+        num_found: 1,
+        offset: 0,
+        limit: 10,
+        results: docs,
+      });
     });
 
     it("handles get_author_info", async () => {
@@ -165,26 +183,26 @@ describe("OpenLibraryServer", () => {
         bio: "British writer, poet, philologist, and university professor",
         photos: [12345],
       };
-      mockedAxios.get.mockResolvedValue({ data });
+      apiClient.get.mockResolvedValue({ data });
 
       const result = await callTool("get_author_info", {
         author_key: "OL23919A",
       });
 
-      expect(mockedAxios.get).toHaveBeenCalledWith("/authors/OL23919A.json");
+      expect(apiClient.get).toHaveBeenCalledWith("/authors/OL23919A.json");
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(data);
     });
 
     it("handles get_author_photo against the covers host", async () => {
-      mockedAxios.head.mockResolvedValue({ status: 200 });
+      coversClient.head.mockResolvedValue({ status: 200 });
 
       const result = await callTool("get_author_photo", { olid: "OL23919A" });
 
-      expect(mockedAxios.head).toHaveBeenCalledWith("/a/olid/OL23919A-L.jpg", {
+      expect(coversClient.head).toHaveBeenCalledWith("/a/olid/OL23919A-L.jpg", {
         params: { default: false },
-        validateStatus: expect.any(Function),
       });
+      expect(apiClient.head).not.toHaveBeenCalled();
       expect(result.isError).toBeUndefined();
       expect(result.content[0].text).toBe(
         "https://covers.openlibrary.org/a/olid/OL23919A-L.jpg",
@@ -199,7 +217,7 @@ describe("OpenLibraryServer", () => {
       ).rejects.toThrow(
         new McpError(ErrorCode.MethodNotFound, "Unknown tool: unknown_tool"),
       );
-      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(apiClient.get).not.toHaveBeenCalled();
     });
 
     // Everything the tool itself raises comes back as a tool error instead, so
@@ -211,7 +229,7 @@ describe("OpenLibraryServer", () => {
       expect(result.content[0].text).toBe(
         "Invalid arguments for search_books: limit: Too big: expected number to be <=50",
       );
-      expect(mockedAxios.get).not.toHaveBeenCalled();
+      expect(apiClient.get).not.toHaveBeenCalled();
     });
 
     it("returns a missing search criterion as a tool error naming the options", async () => {
@@ -224,7 +242,7 @@ describe("OpenLibraryServer", () => {
     });
 
     it("converts an unexpected handler throw into a tool error", async () => {
-      mockedAxios.get.mockImplementation(() => {
+      apiClient.get.mockImplementation(() => {
         throw new TypeError("boom");
       });
       vi.spyOn(console, "error").mockImplementation(() => {});
@@ -237,6 +255,25 @@ describe("OpenLibraryServer", () => {
       // generic Open Library message rather than the boundary's.
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toBe("Open Library API error: boom");
+    });
+
+    // The boundary in src/index.ts is the backstop for a handler bug: without
+    // it, a throw escaping a handler's own catch would break the call instead of
+    // reaching the model. Every handler catches its request failures, so the
+    // only way to exercise it is to throw past one.
+    it("converts a throw that escapes a handler into a tool error", async () => {
+      vi.spyOn(console, "error").mockImplementation(() => {});
+      const tool = TOOLS_BY_NAME.get("get_author_info");
+      vi.spyOn(tool!, "handler").mockRejectedValue(new TypeError("boom"));
+
+      const result = await callTool("get_author_info", {
+        author_key: "OL23919A",
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toBe(
+        "Unexpected error in get_author_info: boom",
+      );
     });
   });
 });

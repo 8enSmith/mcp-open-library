@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { axiosErrorWithStatus } from "../../test-support/axios-error.js";
 import { InvalidArgumentsError } from "../../utils/errors.js";
 import { OpenLibraryClients } from "../../utils/http.js";
 
@@ -24,7 +25,6 @@ describe("handleGetAuthorPhoto", () => {
 
     expect(head).toHaveBeenCalledWith("/a/olid/OL23919A-L.jpg", {
       params: { default: false },
-      validateStatus: expect.any(Function),
     });
     expect(result).toEqual({
       content: [
@@ -36,19 +36,8 @@ describe("handleGetAuthorPhoto", () => {
     });
   });
 
-  it("should treat a redirect as the photo existing", async () => {
-    head.mockResolvedValue({ status: 302 });
-
-    const result = await handleGetAuthorPhoto({ olid: "OL23919A" }, clients);
-
-    expect(result.content[0]).toEqual({
-      type: "text",
-      text: "https://covers.openlibrary.org/a/olid/OL23919A-L.jpg",
-    });
-  });
-
   it("should report when no photo is available", async () => {
-    head.mockResolvedValue({ status: 404 });
+    head.mockRejectedValue(axiosErrorWithStatus(404, "Not Found"));
 
     const result = await handleGetAuthorPhoto({ olid: "OL99999999A" }, clients);
 
@@ -59,6 +48,24 @@ describe("handleGetAuthorPhoto", () => {
           text: "No author photo available for OLID OL99999999A.",
         },
       ],
+    });
+  });
+
+  // Only a 404 means "no such photo". Any other failing status is an upstream
+  // problem, and reporting a URL for it would claim the image exists.
+  it("should return an error result for a failing status other than 404", async () => {
+    head.mockRejectedValue(axiosErrorWithStatus(503, "Service Unavailable"));
+
+    const result = await handleGetAuthorPhoto({ olid: "OL23919A" }, clients);
+
+    expect(result).toEqual({
+      content: [
+        {
+          type: "text",
+          text: "Open Library API error: 503 Service Unavailable",
+        },
+      ],
+      isError: true,
     });
   });
 

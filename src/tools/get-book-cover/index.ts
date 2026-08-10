@@ -18,7 +18,6 @@ export const GetBookCoverArgsSchema = z.object({
     .describe("The value of the identifier."),
   size: z
     .enum(["S", "M", "L"])
-    .optional()
     .default("L")
     .describe("The desired size of the cover (S, M, or L). Defaults to L."),
 });

@@ -1,29 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AxiosError, AxiosHeaders } from "axios";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
+import { axiosErrorWithStatus } from "../../test-support/axios-error.js";
 import { InvalidArgumentsError } from "../../utils/errors.js";
 import { OpenLibraryClients } from "../../utils/http.js";
 
 import { OpenLibraryBookResponse } from "./types.js";
 
 import { handleGetBookById } from "./index.js";
-
-function axiosErrorWithStatus(status: number, statusText: string) {
-  return new AxiosError(
-    `Request failed with status code ${status}`,
-    String(status),
-    undefined,
-    undefined,
-    {
-      status,
-      statusText,
-      headers: {},
-      config: { headers: new AxiosHeaders() },
-      data: {},
-    },
-  );
-}
 
 describe("handleGetBookById", () => {
   let get: ReturnType<typeof vi.fn>;
@@ -190,6 +174,9 @@ describe("handleGetBookById", () => {
     expect(get).not.toHaveBeenCalled();
   });
 
+  // An empty `records` object on a 200 is how this endpoint usually reports a
+  // miss, so it has to be flagged the same way as the 404 below — one outcome,
+  // one result shape.
   it('should return "No book found" message when API returns empty records', async () => {
     get.mockResolvedValue({ data: { records: {}, items: [] } });
 
@@ -202,6 +189,23 @@ describe("handleGetBookById", () => {
       content: [
         { type: "text", text: "No book found for olid: OL_NONEXISTENT" },
       ],
+      isError: true,
+    });
+  });
+
+  it("should flag an unusable record as an error", async () => {
+    get.mockResolvedValue({ data: { records: { "/books/OL1M": undefined } } });
+
+    const result = await handleGetBookById(
+      { idType: "olid", idValue: "OL1M" },
+      clients,
+    );
+
+    expect(result).toEqual({
+      content: [
+        { type: "text", text: "Could not process book record for olid: OL1M" },
+      ],
+      isError: true,
     });
   });
 

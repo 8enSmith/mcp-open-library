@@ -19,15 +19,15 @@ This project implements an MCP server that provides tools for AI assistants to i
 
 - **Book Search**: Search across titles, authors, subjects, places, people, publishers and ISBNs, with sorting and paging (`search_books`).
 - **Book Search by Title**: Search for books using their title (`get_book_by_title`).
-- **Author Search by Name**: Search for authors using their name (`get_authors_by_name`).
+- **Author Search by Name**: Search for authors using their name, with paging (`get_authors_by_name`).
 - **Get Author Details**: Retrieve detailed information for a specific author using their Open Library key (`get_author_info`).
 - **Get Author Photo**: Get the URL for an author's photo using their Open Library ID (OLID) (`get_author_photo`).
 - **Get Book Cover**: Get the URL for a book's cover image using various identifiers (ISBN, OCLC, LCCN, OLID, ID) (`get_book_cover`).
 - **Get Book by ID**: Retrieve detailed book information using various identifiers (ISBN, LCCN, OCLC, OLID) (`get_book_by_id`).
 
-Search results are paged — both search tools return at most `limit` results (default 10, maximum 50) alongside `num_found`, the total number of matches, which you page through with `offset`. The two cover tools check that an image actually exists and say so when it does not, rather than handing back a URL that resolves to a blank placeholder.
+Search results are paged — every search tool returns at most `limit` results (default 10, maximum 50) alongside `num_found`, the total number of matches, which you page through with `offset` (maximum 1000). The two cover tools check that an image actually exists and say so when it does not, rather than handing back a URL that resolves to a blank placeholder.
 
-Every tool is a read-only lookup and advertises itself as such with the `readOnlyHint` and `openWorldHint` annotations, so clients can call them without prompting for confirmation. Failures — an unreachable API, a rejected argument — come back as a tool result flagged `isError`, so an assistant can read what went wrong and correct its next call rather than the request failing outright.
+Every tool is a read-only lookup and advertises itself as such with the `readOnlyHint` and `openWorldHint` annotations, which may allow a client to skip the confirmation prompt it shows for tools that could change something. These are hints: the MCP specification has clients treat annotations as untrusted unless the server is trusted, so the confirmation policy is the client's to decide. Failures — an unreachable API, a rejected argument — come back as a tool result flagged `isError`, so an assistant can read what went wrong and correct its next call rather than the request failing outright.
 
 ## Installation
 
@@ -187,25 +187,38 @@ The `search_books` tool accepts the following parameters:
 
 ```json
 {
-  "name": "J.R.R. Tolkien"
+  "name": "J. R. R. Tolkien",
+  "limit": 2
 }
 ```
 
 **Example `get_authors_by_name` output:**
 
+Each result's `key` can be passed to `get_author_info` for that author's full
+record. `alternate_names` is abridged here.
+
 ```json
-[
-  {
-    "key": "OL26320A",
-    "name": "J. R. R. Tolkien",
-    "alternate_names": [
-      "John Ronald Reuel Tolkien"
-    ],
-    "birth_date": "3 January 1892",
-    "top_work": "The Hobbit",
-    "work_count": 648
-  }
-]
+{
+  "num_found": 2,
+  "offset": 0,
+  "limit": 2,
+  "results": [
+    {
+      "key": "OL26320A",
+      "name": "J.R.R. Tolkien",
+      "alternate_names": ["John Ronald Reuel Tolkien", "Tolkien"],
+      "birth_date": "3 January 1892",
+      "top_work": "The Hobbit",
+      "work_count": 355
+    },
+    {
+      "key": "OL332676A",
+      "name": "J. R. R. Tolkien Centenary Conference (1992 Keble College, Oxford)",
+      "top_work": "Proceedings of the J.R.R. Tolkien Centenary Conference, 1992",
+      "work_count": 2
+    }
+  ]
+}
 ```
 
 **Example `get_author_info` input:**

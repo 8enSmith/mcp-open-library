@@ -1,6 +1,8 @@
-import { AxiosError, AxiosHeaders } from "axios";
+import { AxiosError } from "axios";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { z } from "zod";
+
+import { axiosErrorWithStatus } from "../test-support/axios-error.js";
 
 import {
   describeError,
@@ -10,22 +12,6 @@ import {
   toErrorResult,
   toToolError,
 } from "./errors.js";
-
-function axiosErrorWithStatus(status: number, statusText?: string) {
-  return new AxiosError(
-    `Request failed with status code ${status}`,
-    String(status),
-    undefined,
-    undefined,
-    {
-      status,
-      statusText: statusText ?? "",
-      headers: {},
-      config: { headers: new AxiosHeaders() },
-      data: {},
-    },
-  );
-}
 
 describe("parseArgs", () => {
   const schema = z.object({

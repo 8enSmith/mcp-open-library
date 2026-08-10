@@ -242,5 +242,25 @@ describe("handleSearchBooks", () => {
         SearchBooksArgsSchema.safeParse({ q: "dune", language: "en" }).success,
       ).toBe(false);
     });
+
+    // A three-character length check alone would forward these to the API,
+    // which answers numFound: 0 rather than saying the code was malformed.
+    it("should reject a three-character code that is not lowercase letters", () => {
+      for (const language of ["123", "@@@", "ENG", "e1g", "en "]) {
+        expect(
+          SearchBooksArgsSchema.safeParse({ q: "dune", language }).success,
+          language,
+        ).toBe(false);
+      }
+    });
+
+    it("should accept the MARC special codes", () => {
+      for (const language of ["eng", "mis", "mul", "und", "zxx"]) {
+        expect(
+          SearchBooksArgsSchema.safeParse({ q: "dune", language }).success,
+          language,
+        ).toBe(true);
+      }
+    });
   });
 });

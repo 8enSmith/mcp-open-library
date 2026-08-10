@@ -1,26 +1,10 @@
-import { AxiosError, AxiosHeaders } from "axios";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+import { axiosErrorWithStatus } from "../../test-support/axios-error.js";
 import { InvalidArgumentsError } from "../../utils/errors.js";
 import { OpenLibraryClients } from "../../utils/http.js";
 
 import { handleGetAuthorInfo } from "./index.js";
-
-function axiosErrorWithStatus(status: number, statusText: string) {
-  return new AxiosError(
-    `Request failed with status code ${status}`,
-    String(status),
-    undefined,
-    undefined,
-    {
-      status,
-      statusText,
-      headers: {},
-      config: { headers: new AxiosHeaders() },
-      data: {},
-    },
-  );
-}
 
 describe("handleGetAuthorInfo", () => {
   let get: ReturnType<typeof vi.fn>;

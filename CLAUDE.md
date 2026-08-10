@@ -38,7 +38,7 @@ An MCP stdio server wrapping the Open Library HTTP API. Three layers:
 
 **`src/tools/<tool-name>/`** — one directory per tool, each with `index.ts` (handler, zod arg schema, and the exported `ToolDefinition`), optional `types.ts` (Open Library API response shapes), and `index.test.ts`. `src/tools/registry.ts` collects the definitions into `TOOLS`; `src/tools/index.ts` re-exports everything.
 
-**`src/utils/`** — `http.ts` (client factory; User-Agent and 15s timeout), `errors.ts` (`parseArgs`, `isNotFound`, `describeError`, `toErrorResult`), `results.ts` (`textResult`, `errorTextResult`, `jsonResult`), `schema.ts` (`toInputSchema`), `search.ts` (shared `/search.json` projection and paging schemas), `covers.ts` (cover existence check).
+**`src/utils/`** — `http.ts` (client factory; User-Agent and 15s timeout), `errors.ts` (`parseArgs`, `isNotFound`, `describeError`, `toErrorResult`), `results.ts` (`textResult`, `errorTextResult`, `jsonResult`), `schema.ts` (`toInputSchema`), `search.ts` (shared `/search.json` projection and paging schemas), `covers.ts` (cover existence check). `src/test-support/` holds test-only helpers — currently `axiosErrorWithStatus`, the one place the shape of an axios failure is constructed.
 
 Every handler has the same signature: `(args: unknown, clients: OpenLibraryClients)`, where `clients` is `{ api, covers }` — `api` is based at `https://openlibrary.org`, `covers` at `https://covers.openlibrary.org`. The uniform signature is what lets `CallTool` dispatch generically.
 
@@ -63,6 +63,18 @@ Handlers may still `throw` — `parseArgs` throws `InvalidArgumentsError` on bad
 
 Use the helpers rather than hand-rolling results: `textResult` for an ordinary empty/negative result (no `isError` — "no books found" is a valid answer), `errorTextResult` for a tool-specific failure message (a 404 for a named key), and `toErrorResult(error, toolName)` inside a handler's `catch` for anything thrown by axios. `toErrorResult` logs and produces `Open Library API error: <status> <reason>`; all failure results set `isError: true`.
 
+The line between the first two is *searching* versus *naming*: a search that matches nothing is a valid answer (`textResult`), while an identifier that resolves to nothing is a failed lookup (`errorTextResult`). `get_book_by_id` is the case to watch, because `/api/volumes/brief` reports a miss two ways — a 404, and a 200 carrying an empty `records` object — and both have to be flagged the same way or one logical outcome comes back with two different shapes.
+
+### Cover existence checks
+
+`resolveCoverUrl` (`src/utils/covers.ts`) is shared by `get_book_cover` and `get_author_photo`. It relies on axios's default behaviour of rejecting non-2xx responses:
+
+- `?default=false` makes the covers service answer **404** instead of serving a blank placeholder, so a 404 is the "no image" answer — `textResult`, no `isError`.
+- An image that exists answers **302** at the origin and resolves to **200** once axios follows the redirect to the Internet Archive, so the handler never observes the redirect itself.
+- Every other status is a genuine failure and must surface as an error.
+
+**Do not pass `validateStatus: () => true` here.** It resolves every status, which collapses the third case into the first: a 429 or 500 would be reported as an existing image on the strength of a request that never succeeded. `src/utils/covers.test.ts` asserts the request config carries no `validateStatus`, because that config — not the response handling — is where the bug lives.
+
 ### The search projection
 
 `src/utils/search.ts` holds the one projection both `search_books` and `get_book_by_title` use — `SEARCH_FIELDS` (the `fields=` list) and `toBookInfo`. Change it and both tools change together.
@@ -73,7 +85,7 @@ Open Library does not format ISBNs consistently within that field — `978042503
 
 ### Tool metadata
 
-`ToolDefinition` carries a required `title` (human-readable display name) and optional `annotations`. All seven tools use the shared `READ_ONLY_LOOKUP` constant (`readOnlyHint: true, openWorldHint: true`) from `src/tools/types.ts`, which lets clients auto-approve them. `destructiveHint` and `idempotentHint` are only meaningful when `readOnlyHint` is false, so they are deliberately omitted.
+`ToolDefinition` carries a required `title` (human-readable display name) and optional `annotations`. All seven tools use the shared `READ_ONLY_LOOKUP` constant (`readOnlyHint: true, openWorldHint: true`) from `src/tools/types.ts`, which may allow clients to skip their confirmation prompt. Annotations are only *hints* — the spec has clients treat them as untrusted unless the server is trusted, so auto-approval is the client's decision, not something this server can assert. `destructiveHint` and `idempotentHint` are only meaningful when `readOnlyHint` is false, so they are deliberately omitted.
 
 ### ESM / module resolution
 

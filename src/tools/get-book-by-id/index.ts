@@ -1,11 +1,7 @@
 import { z } from "zod";
 
 import { isNotFound, parseArgs, toErrorResult } from "../../utils/errors.js";
-import {
-  errorTextResult,
-  jsonResult,
-  textResult,
-} from "../../utils/results.js";
+import { errorTextResult, jsonResult } from "../../utils/results.js";
 import { READ_ONLY_LOOKUP, ToolDefinition, ToolHandler } from "../types.js";
 
 import {
@@ -58,7 +54,7 @@ const handleGetBookById: ToolHandler = async (args, clients) => {
       !response.data.records ||
       Object.keys(response.data.records).length === 0
     ) {
-      return textResult(`No book found for ${idType}: ${idValue}`);
+      return errorTextResult(`No book found for ${idType}: ${idValue}`);
     }
 
     const recordKey = Object.keys(response.data.records)[0];
@@ -66,7 +62,7 @@ const handleGetBookById: ToolHandler = async (args, clients) => {
       response.data.records[recordKey];
 
     if (!record) {
-      return textResult(
+      return errorTextResult(
         `Could not process book record for ${idType}: ${idValue}`,
       );
     }

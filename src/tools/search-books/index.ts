@@ -67,8 +67,10 @@ export const SearchBooksArgsSchema = z
       .describe("Search by ISBN-10 or ISBN-13."),
     language: z
       .string()
-      .min(3)
-      .max(3)
+      .regex(/^[a-z]{3}$/, {
+        message:
+          "language must be a lowercase 3-letter MARC code, e.g. eng, fre, spa",
+      })
       .optional()
       .describe(
         "Restrict results to a language, as a 3-letter MARC code (e.g. eng, fre, spa).",

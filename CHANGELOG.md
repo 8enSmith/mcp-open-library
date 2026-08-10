@@ -8,21 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - Tool: `search_books` - search across titles, authors, subjects, places, people, publishers and ISBNs, with `sort`, `language`, `limit` and `offset`. At least one search criterion is required
-- `limit` and `offset` on `get_book_by_title` (default 10, maximum 50)
-- Requests now send a `User-Agent` identifying the server, which raises the Open Library rate limit from 1 to 3 requests per second
+- `limit` and `offset` on `get_book_by_title` and `get_authors_by_name` — `limit` defaults to 10 with a maximum of 50, `offset` defaults to 0 with a maximum of 1000
+- Requests now send a `User-Agent` identifying the server and its repository. (Open Library grants its higher 3 requests/second allowance only to clients that also send a contact email or phone number, so the default 1 request/second still applies here)
 - Requests now time out after 15 seconds instead of hanging indefinitely
-- Every tool now advertises a human-readable `title` and the `readOnlyHint` / `openWorldHint` annotations, so clients can skip the confirmation prompt for these read-only lookups
+- Every tool now advertises a human-readable `title` and the `readOnlyHint` / `openWorldHint` annotations, which may allow a client to skip the confirmation prompt for these read-only lookups. Annotations are hints, and the MCP specification has clients treat them as untrusted unless the server is trusted, so the confirmation policy remains the client's decision
 - Search results now carry `best_edition`: one edition of the work with its `isbn_13`/`isbn_10` where Open Library has them, plus its `edition_key`. Previously a search gave back only a *work* key, which no tool accepted — there was no route from a search result to an ISBN. The `edition_key` is an OLID that can be passed to `get_book_by_id` for the full edition record. ISBNs come from Open Library's nested `editions` sub-query rather than the work-level `isbn` field, which would return every edition's ISBN (6,113 for Pride and Prejudice) and inflate a page 35×
 
 ### Changed
 - Invalid tool arguments now come back as a result with `isError: true` rather than a JSON-RPC `InvalidParams` error. The message is unchanged. Per the MCP specification, errors originating from a tool "SHOULD be reported inside the result object ... Otherwise, the LLM would not be able to see that an error occurred and self-correct" — a protocol error is raised by the client before the model ever sees it. Calling an unknown tool remains a protocol error, as the specification requires. Any unexpected exception inside a handler is likewise converted rather than escaping as a protocol error
 - `get_book_by_title` returns an object `{ num_found, offset, limit, results }` rather than a bare array, so clients can tell how many matches exist beyond the page they were given. Previously it returned up to 100 results with no total
-- Search results now also carry `author_keys`, `ratings_average` and `ebook_access`. `author_keys` can be passed straight to `get_author_info`
+- `get_authors_by_name` returns an object `{ num_found, offset, limit, results }` rather than a bare array, and asks Open Library for one page instead of accepting its 100-result default. A broad name such as "smith" previously returned 100 authors — roughly 32KB into an assistant's context, against roughly 4.3KB for the default page of 10
+- Search results now also carry `author_keys`, `ratings_average` and `ebook_access`. `author_keys` is an array of individual keys, each of which can be passed to `get_author_info` (which takes a single `author_key`)
 - Search requests ask Open Library for only the fields used, cutting a typical `get_book_by_title` response from roughly 21KB to roughly 5.5KB
 - `get_book_cover` and `get_author_photo` now check that the image exists and report `No cover image available ...` instead of returning a URL that resolves to a blank placeholder
 - Upstream failures report a consistent `Open Library API error: <status> <reason>` including the HTTP status code, and all tools now set `isError` on failure (`get_book_by_id` previously did not)
+- `get_book_by_id` flags both of its not-found paths the same way. Open Library reports a missing identifier either as a 404 or as a 200 carrying an empty record set; the latter previously came back without `isError`, so one outcome had two shapes
+- `search_books` requires `language` to be a lowercase three-letter MARC code. Values such as `123` or `ENG` were previously forwarded to Open Library, which answered with no matches rather than reporting the code as malformed
 - `get_book_cover` no longer accepts an explicit `size: null`; omit `size` to get the default `L`
 - Each tool's JSON Schema is generated from its zod schema, so what clients are told a tool accepts can no longer drift from what is enforced
+
+### Fixed
+- `get_book_cover` and `get_author_photo` no longer report a cover as available when the request to the covers service actually failed. The existence check suppressed every HTTP status, so a 429 or 500 was indistinguishable from a hit and produced a URL; only a 404 now means "no image", and any other failing status is reported as an error
 
 ## [1.0.3] - 2026-08-09
 ### Added

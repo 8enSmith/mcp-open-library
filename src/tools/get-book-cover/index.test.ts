@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { axiosErrorWithStatus } from "../../test-support/axios-error.js";
 import { InvalidArgumentsError } from "../../utils/errors.js";
 import { OpenLibraryClients } from "../../utils/http.js";
 
@@ -29,7 +30,6 @@ describe("handleGetBookCover", () => {
 
     expect(head).toHaveBeenCalledWith("/b/isbn/0451526538-L.jpg", {
       params: { default: false },
-      validateStatus: expect.any(Function),
     });
     expect(coverText(result)).toBe(
       "https://covers.openlibrary.org/b/isbn/0451526538-L.jpg",
@@ -69,7 +69,7 @@ describe("handleGetBookCover", () => {
   });
 
   it("should report when no cover is available", async () => {
-    head.mockResolvedValue({ status: 404 });
+    head.mockRejectedValue(axiosErrorWithStatus(404, "Not Found"));
 
     const result = await handleGetBookCover(
       { key: "OLID", value: "OL00000000M" },
@@ -83,6 +83,27 @@ describe("handleGetBookCover", () => {
           text: "No cover image available for OLID OL00000000M.",
         },
       ],
+    });
+  });
+
+  // Only a 404 means "no such cover". Any other failing status is an upstream
+  // problem, and reporting a URL for it would claim the image exists.
+  it("should return an error result for a failing status other than 404", async () => {
+    head.mockRejectedValue(axiosErrorWithStatus(500, "Internal Server Error"));
+
+    const result = await handleGetBookCover(
+      { key: "ISBN", value: "0451526538" },
+      clients,
+    );
+
+    expect(result).toEqual({
+      content: [
+        {
+          type: "text",
+          text: "Open Library API error: 500 Internal Server Error",
+        },
+      ],
+      isError: true,
     });
   });
 
