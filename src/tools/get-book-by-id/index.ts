@@ -1,90 +1,78 @@
-import {
-  CallToolResult,
-  ErrorCode,
-  McpError,
-} from "@modelcontextprotocol/sdk/types.js";
-import axios from "axios";
 import { z } from "zod";
+
+import { isNotFound, parseArgs, toErrorResult } from "../../utils/errors.js";
+import {
+  errorTextResult,
+  jsonResult,
+  textResult,
+} from "../../utils/results.js";
+import { READ_ONLY_LOOKUP, ToolDefinition, ToolHandler } from "../types.js";
 
 import {
   BookDetails,
   OpenLibraryBookResponse,
-  OpenLibraryRecord, // Import the updated record type
+  OpenLibraryRecord,
 } from "./types.js";
 
-// Schema for the get_book_by_id tool arguments
-const GetBookByIdArgsSchema = z.object({
+export const GetBookByIdArgsSchema = z.object({
   idType: z
-    .string()
-    .transform((val) => val.toLowerCase())
-    .pipe(
-      z.enum(["isbn", "lccn", "oclc", "olid"], {
-        message: "idType must be one of: isbn, lccn, oclc, olid",
-      }),
+    .enum(["isbn", "lccn", "oclc", "olid"], {
+      message: "idType must be one of: isbn, lccn, oclc, olid",
+    })
+    .describe(
+      "The type of identifier used (isbn, lccn, oclc, olid). Case-insensitive.",
     ),
-  idValue: z.string().min(1, { message: "idValue cannot be empty" }),
+  idValue: z
+    .string()
+    .min(1, { message: "idValue cannot be empty" })
+    .describe("The value of the identifier."),
 });
 
-// Type for the Axios instance
-type AxiosInstance = ReturnType<typeof axios.create>;
-
-export const handleGetBookById = async (
-  args: unknown,
-  axiosInstance: AxiosInstance,
-): Promise<CallToolResult> => {
-  const parseResult = GetBookByIdArgsSchema.safeParse(args);
-
-  if (!parseResult.success) {
-    const errorMessages = parseResult.error.issues
-      .map((e) => `${e.path.join(".")}: ${e.message}`)
-      .join(", ");
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Invalid arguments for get_book_by_id: ${errorMessages}`,
-    );
+// Normalised before validation rather than inside the schema: a zod transform
+// would erase the enum from the generated JSON Schema, hiding the accepted
+// values from clients.
+function normaliseIdType(args: unknown): unknown {
+  if (args && typeof args === "object" && "idType" in args) {
+    const { idType } = args as { idType: unknown };
+    if (typeof idType === "string") {
+      return { ...args, idType: idType.toLowerCase() };
+    }
   }
+  return args;
+}
 
-  const { idType, idValue } = parseResult.data;
+const handleGetBookById: ToolHandler = async (args, clients) => {
+  const { idType, idValue } = parseArgs(
+    GetBookByIdArgsSchema,
+    normaliseIdType(args),
+    "get_book_by_id",
+  );
+
   const apiUrl = `/api/volumes/brief/${idType}/${idValue}.json`;
 
   try {
-    const response = await axiosInstance.get<OpenLibraryBookResponse>(apiUrl);
+    const response = await clients.api.get<OpenLibraryBookResponse>(apiUrl);
 
-    // Check if records object exists and is not empty
     if (
       !response.data ||
       !response.data.records ||
       Object.keys(response.data.records).length === 0
     ) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `No book found for ${idType}: ${idValue}`,
-          },
-        ],
-      };
+      return textResult(`No book found for ${idType}: ${idValue}`);
     }
 
-    // Get the first record from the records object
     const recordKey = Object.keys(response.data.records)[0];
     const record: OpenLibraryRecord | undefined =
       response.data.records[recordKey];
 
     if (!record) {
-      // This case should theoretically not happen if the length check passed, but good for safety
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Could not process book record for ${idType}: ${idValue}`,
-          },
-        ],
-      };
+      return textResult(
+        `Could not process book record for ${idType}: ${idValue}`,
+      );
     }
 
     const recordData = record.data;
-    const recordDetails = record.details?.details; // Access the nested details
+    const recordDetails = record.details?.details;
 
     const bookDetails: BookDetails = {
       title: recordData.title,
@@ -99,11 +87,11 @@ export const handleGetBookById = async (
       isbn_10: recordData.identifiers?.isbn_10 ?? recordDetails?.isbn_10,
       lccn: recordData.identifiers?.lccn ?? recordDetails?.lccn,
       oclc: recordData.identifiers?.oclc ?? recordDetails?.oclc_numbers,
-      olid: recordData.identifiers?.openlibrary, // Add OLID from identifiers
-      open_library_edition_key: recordData.key, // From recordData
-      open_library_work_key: recordDetails?.works?.[0]?.key, // From nested details
-      cover_url: recordData.cover?.medium, // Use medium cover from recordData
-      info_url: record.details?.info_url ?? recordData.url, // Prefer info_url from details
+      olid: recordData.identifiers?.openlibrary,
+      open_library_edition_key: recordData.key,
+      open_library_work_key: recordDetails?.works?.[0]?.key,
+      cover_url: recordData.cover?.medium,
+      info_url: record.details?.info_url ?? recordData.url,
       preview_url:
         record.details?.preview_url ?? recordData.ebooks?.[0]?.preview_url,
     };
@@ -121,35 +109,23 @@ export const handleGetBookById = async (
       }
     });
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(bookDetails, null, 2),
-        },
-      ],
-    };
+    return jsonResult(bookDetails);
   } catch (error) {
-    let errorMessage = "Failed to fetch book data from Open Library.";
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 404) {
-        errorMessage = `No book found for ${idType}: ${idValue}`;
-      } else {
-        errorMessage = `API Error: ${error.response?.statusText ?? error.message}`;
-      }
-    } else if (error instanceof Error) {
-      errorMessage = `Error processing request: ${error.message}`;
+    if (isNotFound(error)) {
+      return errorTextResult(`No book found for ${idType}: ${idValue}`);
     }
-    console.error("Error in get_book_by_id:", error);
-
-    // Return error as text content
-    return {
-      content: [
-        {
-          type: "text",
-          text: errorMessage,
-        },
-      ],
-    };
+    return toErrorResult(error, "get_book_by_id");
   }
 };
+
+export const getBookByIdTool: ToolDefinition = {
+  name: "get_book_by_id",
+  title: "Get book by identifier",
+  description:
+    "Get detailed information about a book using its identifier (ISBN, LCCN, OCLC, OLID).",
+  schema: GetBookByIdArgsSchema,
+  annotations: READ_ONLY_LOOKUP,
+  handler: handleGetBookById,
+};
+
+export { handleGetBookById };

@@ -13,16 +13,21 @@ A Model Context Protocol (MCP) server for the Open Library API that enables AI a
 
 ## Overview
 
-This project implements an MCP server that provides tools for AI assistants to interact with the [Open Library](https://openlibrary.org/). It allows searching for book information by title, searching for authors by name, retrieving detailed author information using their Open Library key, and getting URLs for author photos using their Open Library ID (OLID). The server returns structured data for book and author information.
+This project implements an MCP server that provides tools for AI assistants to interact with the [Open Library](https://openlibrary.org/). It allows searching the catalogue by title, author, subject and other fields, searching for authors by name, retrieving detailed author information using their Open Library key, and getting URLs for book covers and author photos. The server returns JSON projections of the Open Library responses rather than the raw payloads.
 
 ## Features
 
+- **Book Search**: Search across titles, authors, subjects, places, people, publishers and ISBNs, with sorting and paging (`search_books`).
 - **Book Search by Title**: Search for books using their title (`get_book_by_title`).
 - **Author Search by Name**: Search for authors using their name (`get_authors_by_name`).
 - **Get Author Details**: Retrieve detailed information for a specific author using their Open Library key (`get_author_info`).
 - **Get Author Photo**: Get the URL for an author's photo using their Open Library ID (OLID) (`get_author_photo`).
 - **Get Book Cover**: Get the URL for a book's cover image using various identifiers (ISBN, OCLC, LCCN, OLID, ID) (`get_book_cover`).
 - **Get Book by ID**: Retrieve detailed book information using various identifiers (ISBN, LCCN, OCLC, OLID) (`get_book_by_id`).
+
+Search results are paged — both search tools return at most `limit` results (default 10, maximum 50) alongside `num_found`, the total number of matches, which you page through with `offset`. The two cover tools check that an image actually exists and say so when it does not, rather than handing back a URL that resolves to a blank placeholder.
+
+Every tool is a read-only lookup and advertises itself as such with the `readOnlyHint` and `openWorldHint` annotations, so clients can call them without prompting for confirmation. Failures — an unreachable API, a rejected argument — come back as a tool result flagged `isError`, so an assistant can read what went wrong and correct its next call rather than the request failing outright.
 
 ## Installation
 
@@ -47,6 +52,7 @@ npx -y @smithery/cli install @8enSmith/mcp-open-library --client claude
 ```
 
 ### Manual Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/8enSmith/mcp-open-library.git
@@ -77,6 +83,7 @@ npm run build
 
 This server implements the Model Context Protocol, which means it can be used by any MCP-compatible AI assistant or client e.g. [Claude Desktop](https://modelcontextprotocol.io/quickstart/user). The server exposes the following tools:
 
+- `search_books`: Search the catalogue by any combination of query, title, author, subject, place, person, publisher and ISBN
 - `get_book_by_title`: Search for book information by title
 - `get_authors_by_name`: Search for author information by name
 - `get_author_info`: Get detailed information for a specific author using their Open Library Author Key
@@ -84,30 +91,84 @@ This server implements the Model Context Protocol, which means it can be used by
 - `get_book_cover`: Get the URL for a book's cover image using a specific identifier (ISBN, OCLC, LCCN, OLID, or ID)
 - `get_book_by_id`: Get detailed book information using a specific identifier (ISBN, LCCN, OCLC, or OLID)
 
-**Example `get_book_by_title` input:**
+**Example `search_books` input:**
+
 ```json
 {
-  "title": "The Hobbit"
+  "author": "Ursula K. Le Guin",
+  "subject": "fantasy",
+  "sort": "old",
+  "limit": 2
+}
+```
+
+**Example `search_books` output:**
+
+```json
+{
+  "num_found": 87,
+  "offset": 0,
+  "limit": 2,
+  "results": [
+    {
+      "title": "A Wizard of Earthsea",
+      "authors": ["Ursula K. Le Guin"],
+      "author_keys": ["OL26783A"],
+      "first_publish_year": 1968,
+      "open_library_work_key": "/works/OL102749W",
+      "edition_count": 89,
+      "cover_url": "https://covers.openlibrary.org/b/id/8188953-M.jpg",
+      "ratings_average": 4.11,
+      "ebook_access": "borrowable"
+    }
+  ]
+}
+```
+
+The `search_books` tool accepts the following parameters:
+
+- At least one of `q`, `title`, `author`, `subject`, `place`, `person`, `publisher` or `isbn` — the request is rejected without one, since an unfiltered search matches the entire catalogue. `q` takes a free-form Solr query such as `subject:cyberpunk AND first_publish_year:[1980 TO 1990]`
+- `language`: Optional 3-letter MARC language code (e.g. `eng`, `fre`)
+- `sort`: Optional ordering — `new`, `old`, `random`, `key`, `rating`, `readinglog`, `want_to_read`, `currently_reading`, `already_read` or `title`. Omit for relevance
+- `limit`: Optional, 1–50, defaults to 10
+- `offset`: Optional, 0–1000, defaults to 0
+
+**Example `get_book_by_title` input:**
+
+```json
+{
+  "title": "The Hobbit",
+  "limit": 1
 }
 ```
 
 **Example `get_book_by_title` output:**
+
 ```json
-[
-  {
-    "title": "The Hobbit",
-    "authors": [
-      "J. R. R. Tolkien"
-    ],
-    "first_publish_year": 1937,
-    "open_library_work_key": "/works/OL45883W",
-    "edition_count": 120,
-    "cover_url": "https://covers.openlibrary.org/b/id/10581294-M.jpg"
-  }
-]
+{
+  "num_found": 1247,
+  "offset": 0,
+  "limit": 1,
+  "results": [
+    {
+      "title": "The Hobbit",
+      "authors": [
+        "J. R. R. Tolkien"
+      ],
+      "author_keys": ["OL26320A"],
+      "first_publish_year": 1937,
+      "open_library_work_key": "/works/OL45883W",
+      "edition_count": 120,
+      "cover_url": "https://covers.openlibrary.org/b/id/10581294-M.jpg",
+      "ratings_average": 4.24,
+      "ebook_access": "borrowable"
+    }
+  ]
+}
 ```
 
 **Example `get_authors_by_name` input:**
+
 ```json
 {
   "name": "J.R.R. Tolkien"
@@ -115,6 +176,7 @@ This server implements the Model Context Protocol, which means it can be used by
 ```
 
 **Example `get_authors_by_name` output:**
+
 ```json
 [
   {
@@ -131,6 +193,7 @@ This server implements the Model Context Protocol, which means it can be used by
 ```
 
 **Example `get_author_info` input:**
+
 ```json
 {
   "author_key": "OL26320A"
@@ -138,6 +201,7 @@ This server implements the Model Context Protocol, which means it can be used by
 ```
 
 **Example `get_author_info` output:**
+
 ```json
 {
   "name": "J. R. R. Tolkien",
@@ -161,6 +225,7 @@ This server implements the Model Context Protocol, which means it can be used by
 ```
 
 **Example `get_author_photo` input:**
+
 ```json
 {
   "olid": "OL26320A"
@@ -168,11 +233,19 @@ This server implements the Model Context Protocol, which means it can be used by
 ```
 
 **Example `get_author_photo` output:**
+
 ```text
 https://covers.openlibrary.org/a/olid/OL26320A-L.jpg
 ```
 
+When Open Library has no photo for that author, the tool says so instead of returning a URL:
+
+```text
+No author photo available for OLID OL99999999A.
+```
+
 **Example `get_book_cover` input:**
+
 ```json
 {
   "key": "ISBN",
@@ -182,16 +255,25 @@ https://covers.openlibrary.org/a/olid/OL26320A-L.jpg
 ```
 
 **Example `get_book_cover` output:**
+
 ```text
 https://covers.openlibrary.org/b/isbn/9780547928227-L.jpg
 ```
 
+As with author photos, a book with no cover produces a message rather than a URL:
+
+```text
+No cover image available for OLID OL00000000M.
+```
+
 The `get_book_cover` tool accepts the following parameters:
+
 - `key`: The type of identifier (one of: `ISBN`, `OCLC`, `LCCN`, `OLID`, or `ID`)
 - `value`: The value of the identifier
 - `size`: Optional cover size (`S` for small, `M` for medium, `L` for large, defaults to `L`)
 
 **Example `get_book_by_id` input:**
+
 ```json
 {
   "idType": "isbn",
@@ -200,6 +282,7 @@ The `get_book_cover` tool accepts the following parameters:
 ```
 
 **Example `get_book_by_id` output:**
+
 ```json
 {
   "title": "The Hobbit",
@@ -232,6 +315,7 @@ The `get_book_cover` tool accepts the following parameters:
 ```
 
 The `get_book_by_id` tool accepts the following parameters:
+
 - `idType`: The type of identifier (one of: `isbn`, `lccn`, `oclc`, `olid`)
 - `idValue`: The value of the identifier
 
@@ -258,18 +342,30 @@ npm run inspector http://localhost:8080
 
 ### Project Structure
 
-- `src/index.ts` - The MCP server: lists the tools and dispatches tool calls
-- `src/index.test.ts` - Tests for the server wiring
+- `src/index.ts` - The MCP server: builds the HTTP clients and drives both request handlers
+  from the tool registry
+- `src/index.test.ts` - Tests for the server wiring, including a snapshot of the published
+  tool schemas
 - `src/tools/<tool-name>/` - One directory per tool, each containing `index.ts` (the
-  handler and its Zod argument schema), `index.test.ts`, and — for tools that call the
-  Open Library API — a `types.ts` describing the response shape
-- `src/tools/index.ts` - Re-exports every tool handler
+  handler, its Zod argument schema and its `ToolDefinition`), `index.test.ts`, and — for
+  tools with a non-trivial API response — a `types.ts` describing that response shape
+- `src/tools/registry.ts` - The `TOOLS` array, the single list of what the server exposes
+- `src/tools/types.ts` - The `ToolDefinition` and `ToolHandler` contracts
+- `src/utils/` - Shared plumbing: `http.ts` (the API and covers Axios clients), `errors.ts`
+  (argument parsing and error results), `results.ts`, `schema.ts` (Zod → JSON Schema),
+  `search.ts` (the shared search projection and paging schemas), `covers.ts`
 - `scripts/` - Release automation (`sync-server-json.mjs`, `promote-changelog.mjs`,
   `assert-release-consistency.mjs`) and its tests
 
-Each tool declares its input schema twice: as JSON Schema in the `ListTools` handler in
-`src/index.ts`, which is what MCP clients see, and as a Zod schema in the tool's own
-`index.ts`, which is what validates incoming arguments. Keep the two in step.
+A tool's input contract is declared once, as a Zod schema. The JSON Schema that MCP clients
+see is generated from it by `toInputSchema`, so the two cannot drift. Field descriptions come
+from `.describe()` on the Zod schema. Note that `.refine()` constraints are dropped in
+translation — a cross-field rule has to be stated in the tool's `description` too, or clients
+will never learn about it.
+
+Adding a tool means creating the directory and adding one entry to `TOOLS` in
+`src/tools/registry.ts`. `src/index.test.ts` derives its expectations from that array, so the
+only test change is an updated schema snapshot (`npx vitest run -u`).
 
 ### Available Scripts
 

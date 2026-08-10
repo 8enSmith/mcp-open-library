@@ -1,60 +1,35 @@
-import {
-  CallToolResult,
-  ErrorCode,
-  McpError,
-} from "@modelcontextprotocol/sdk/types.js";
-import axios from "axios";
 import { z } from "zod";
+
+import { parseArgs, toErrorResult } from "../../utils/errors.js";
+import { jsonResult, textResult } from "../../utils/results.js";
+import { READ_ONLY_LOOKUP, ToolDefinition, ToolHandler } from "../types.js";
 
 import { AuthorInfo, OpenLibraryAuthorSearchResponse } from "./types.js";
 
-// Schema for the get_authors_by-name tool arguments
 export const GetAuthorsByNameArgsSchema = z.object({
-  name: z.string().min(1, { message: "Author name cannot be empty" }),
+  name: z
+    .string()
+    .min(1, { message: "Author name cannot be empty" })
+    .describe("The name of the author to search for."),
 });
 
-// Type for the Axios instance
-type AxiosInstance = ReturnType<typeof axios.create>;
-
-const handleGetAuthorsByName = async (
-  args: unknown,
-  axiosInstance: AxiosInstance,
-): Promise<CallToolResult> => {
-  const parseResult = GetAuthorsByNameArgsSchema.safeParse(args);
-
-  if (!parseResult.success) {
-    const errorMessages = parseResult.error.issues
-      .map((e) => `${e.path.join(".")}: ${e.message}`)
-      .join(", ");
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Invalid arguments for get_authors_by_name: ${errorMessages}`,
-    );
-  }
-
-  const authorName = parseResult.data.name;
+const handleGetAuthorsByName: ToolHandler = async (args, clients) => {
+  const { name: authorName } = parseArgs(
+    GetAuthorsByNameArgsSchema,
+    args,
+    "get_authors_by_name",
+  );
 
   try {
-    const response = await axiosInstance.get<OpenLibraryAuthorSearchResponse>(
-      "/search/authors.json", // Use the author search endpoint
+    const response = await clients.api.get<OpenLibraryAuthorSearchResponse>(
+      "/search/authors.json",
       {
-        params: { q: authorName }, // Use 'q' parameter for author search
+        params: { q: authorName },
       },
     );
 
-    if (
-      !response.data ||
-      !response.data.docs ||
-      response.data.docs.length === 0
-    ) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `No authors found matching name: "${authorName}"`,
-          },
-        ],
-      };
+    if (!response.data?.docs?.length) {
+      return textResult(`No authors found matching name: "${authorName}"`);
     }
 
     const authorResults: AuthorInfo[] = response.data.docs.map((doc) => ({
@@ -66,34 +41,19 @@ const handleGetAuthorsByName = async (
       work_count: doc.work_count,
     }));
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(authorResults, null, 2),
-        },
-      ],
-    };
+    return jsonResult(authorResults);
   } catch (error) {
-    let errorMessage = "Failed to fetch author data from Open Library.";
-    if (axios.isAxiosError(error)) {
-      errorMessage = `Open Library API error: ${
-        error.response?.statusText ?? error.message
-      }`;
-    } else if (error instanceof Error) {
-      errorMessage = `Error processing request: ${error.message}`;
-    }
-    console.error("Error in get_authors_by_name:", error);
-    return {
-      content: [
-        {
-          type: "text",
-          text: errorMessage,
-        },
-      ],
-      isError: true,
-    };
+    return toErrorResult(error, "get_authors_by_name");
   }
+};
+
+export const getAuthorsByNameTool: ToolDefinition = {
+  name: "get_authors_by_name",
+  title: "Find authors by name",
+  description: "Search for author information on Open Library.",
+  schema: GetAuthorsByNameArgsSchema,
+  annotations: READ_ONLY_LOOKUP,
+  handler: handleGetAuthorsByName,
 };
 
 export { handleGetAuthorsByName };

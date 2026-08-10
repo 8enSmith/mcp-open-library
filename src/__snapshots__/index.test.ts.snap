@@ -1,0 +1,277 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`OpenLibraryServer > ListTools > matches the published tool schemas 1`] = `
+[
+  {
+    "annotations": {
+      "openWorldHint": true,
+      "readOnlyHint": true,
+    },
+    "description": "Search Open Library across titles, authors, subjects, places, people, publishers and ISBNs. Provide at least one search criterion: q, title, author, subject, place, person, publisher, isbn; combining several narrows the search. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`.",
+    "inputSchema": {
+      "properties": {
+        "author": {
+          "description": "Search by author name.",
+          "minLength": 1,
+          "type": "string",
+        },
+        "isbn": {
+          "description": "Search by ISBN-10 or ISBN-13.",
+          "minLength": 1,
+          "type": "string",
+        },
+        "language": {
+          "description": "Restrict results to a language, as a 3-letter MARC code (e.g. eng, fre, spa).",
+          "maxLength": 3,
+          "minLength": 3,
+          "type": "string",
+        },
+        "limit": {
+          "default": 10,
+          "description": "Maximum number of results to return (1-50, default 10).",
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "offset": {
+          "default": 0,
+          "description": "Number of results to skip, for paging through the total reported as num_found (0-1000, default 0).",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "integer",
+        },
+        "person": {
+          "description": "Search by a person the book is about.",
+          "minLength": 1,
+          "type": "string",
+        },
+        "place": {
+          "description": "Search by a place the book is about.",
+          "minLength": 1,
+          "type": "string",
+        },
+        "publisher": {
+          "description": "Search by publisher.",
+          "minLength": 1,
+          "type": "string",
+        },
+        "q": {
+          "description": "Free-form query searched across all fields. Supports Solr syntax, e.g. \`subject:cyberpunk AND first_publish_year:[1980 TO 1990]\`.",
+          "minLength": 1,
+          "type": "string",
+        },
+        "sort": {
+          "description": "Result ordering. Omit for relevance. \`new\`/\`old\` order by first publication date, \`rating\` by average rating.",
+          "enum": [
+            "new",
+            "old",
+            "random",
+            "key",
+            "rating",
+            "readinglog",
+            "want_to_read",
+            "currently_reading",
+            "already_read",
+            "title",
+          ],
+          "type": "string",
+        },
+        "subject": {
+          "description": "Search by subject.",
+          "minLength": 1,
+          "type": "string",
+        },
+        "title": {
+          "description": "Search by book title.",
+          "minLength": 1,
+          "type": "string",
+        },
+      },
+      "type": "object",
+    },
+    "name": "search_books",
+    "title": "Search books",
+  },
+  {
+    "annotations": {
+      "openWorldHint": true,
+      "readOnlyHint": true,
+    },
+    "description": "Search for a book by its title on Open Library. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`.",
+    "inputSchema": {
+      "properties": {
+        "limit": {
+          "default": 10,
+          "description": "Maximum number of results to return (1-50, default 10).",
+          "maximum": 50,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "offset": {
+          "default": 0,
+          "description": "Number of results to skip, for paging through the total reported as num_found (0-1000, default 0).",
+          "maximum": 1000,
+          "minimum": 0,
+          "type": "integer",
+        },
+        "title": {
+          "description": "The title of the book to search for.",
+          "minLength": 1,
+          "type": "string",
+        },
+      },
+      "required": [
+        "title",
+      ],
+      "type": "object",
+    },
+    "name": "get_book_by_title",
+    "title": "Find books by title",
+  },
+  {
+    "annotations": {
+      "openWorldHint": true,
+      "readOnlyHint": true,
+    },
+    "description": "Get detailed information about a book using its identifier (ISBN, LCCN, OCLC, OLID).",
+    "inputSchema": {
+      "properties": {
+        "idType": {
+          "description": "The type of identifier used (isbn, lccn, oclc, olid). Case-insensitive.",
+          "enum": [
+            "isbn",
+            "lccn",
+            "oclc",
+            "olid",
+          ],
+          "type": "string",
+        },
+        "idValue": {
+          "description": "The value of the identifier.",
+          "minLength": 1,
+          "type": "string",
+        },
+      },
+      "required": [
+        "idType",
+        "idValue",
+      ],
+      "type": "object",
+    },
+    "name": "get_book_by_id",
+    "title": "Get book by identifier",
+  },
+  {
+    "annotations": {
+      "openWorldHint": true,
+      "readOnlyHint": true,
+    },
+    "description": "Search for author information on Open Library.",
+    "inputSchema": {
+      "properties": {
+        "name": {
+          "description": "The name of the author to search for.",
+          "minLength": 1,
+          "type": "string",
+        },
+      },
+      "required": [
+        "name",
+      ],
+      "type": "object",
+    },
+    "name": "get_authors_by_name",
+    "title": "Find authors by name",
+  },
+  {
+    "annotations": {
+      "openWorldHint": true,
+      "readOnlyHint": true,
+    },
+    "description": "Get detailed information for a specific author using their Open Library Author Key (e.g. OL23919A).",
+    "inputSchema": {
+      "properties": {
+        "author_key": {
+          "description": "The Open Library key for the author (e.g., OL23919A).",
+          "minLength": 1,
+          "pattern": "^OL\\d+A$",
+          "type": "string",
+        },
+      },
+      "required": [
+        "author_key",
+      ],
+      "type": "object",
+    },
+    "name": "get_author_info",
+    "title": "Get author details",
+  },
+  {
+    "annotations": {
+      "openWorldHint": true,
+      "readOnlyHint": true,
+    },
+    "description": "Get the URL for an author's photo using their Open Library Author ID (OLID e.g. OL23919A). Reports when no photo exists rather than returning a URL to a blank placeholder.",
+    "inputSchema": {
+      "properties": {
+        "olid": {
+          "description": "The Open Library Author ID (OLID) for the author (e.g. OL23919A).",
+          "minLength": 1,
+          "pattern": "^OL\\d+A$",
+          "type": "string",
+        },
+      },
+      "required": [
+        "olid",
+      ],
+      "type": "object",
+    },
+    "name": "get_author_photo",
+    "title": "Get author photo URL",
+  },
+  {
+    "annotations": {
+      "openWorldHint": true,
+      "readOnlyHint": true,
+    },
+    "description": "Get the URL for a book's cover image using a key (ISBN, OCLC, LCCN, OLID, ID) and value. Reports when no cover exists rather than returning a URL to a blank placeholder.",
+    "inputSchema": {
+      "properties": {
+        "key": {
+          "description": "The type of identifier used (ISBN, OCLC, LCCN, OLID, ID). ID is Open Library's internal cover ID.",
+          "enum": [
+            "ISBN",
+            "OCLC",
+            "LCCN",
+            "OLID",
+            "ID",
+          ],
+          "type": "string",
+        },
+        "size": {
+          "default": "L",
+          "description": "The desired size of the cover (S, M, or L). Defaults to L.",
+          "enum": [
+            "S",
+            "M",
+            "L",
+          ],
+          "type": "string",
+        },
+        "value": {
+          "description": "The value of the identifier.",
+          "minLength": 1,
+          "type": "string",
+        },
+      },
+      "required": [
+        "key",
+        "value",
+      ],
+      "type": "object",
+    },
+    "name": "get_book_cover",
+    "title": "Get book cover URL",
+  },
+]
+`;

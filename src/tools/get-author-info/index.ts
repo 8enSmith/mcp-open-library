@@ -1,102 +1,64 @@
-import {
-  CallToolResult,
-  ErrorCode,
-  McpError,
-} from "@modelcontextprotocol/sdk/types.js";
-import axios from "axios";
 import { z } from "zod";
+
+import { isNotFound, parseArgs, toErrorResult } from "../../utils/errors.js";
+import {
+  errorTextResult,
+  jsonResult,
+  textResult,
+} from "../../utils/results.js";
+import { READ_ONLY_LOOKUP, ToolDefinition, ToolHandler } from "../types.js";
 
 import { DetailedAuthorInfo } from "./types.js";
 
-// Schema for the get_author_info tool arguments
 export const GetAuthorInfoArgsSchema = z.object({
   author_key: z
     .string()
     .min(1, { message: "Author key cannot be empty" })
     .regex(/^OL\d+A$/, {
       message: "Author key must be in the format OL<number>A",
-    }),
+    })
+    .describe("The Open Library key for the author (e.g., OL23919A)."),
 });
 
-// Type for the Axios instance (can be imported or defined if needed elsewhere)
-type AxiosInstance = ReturnType<typeof axios.create>;
-
-const handleGetAuthorInfo = async (
-  args: unknown,
-  axiosInstance: AxiosInstance,
-): Promise<CallToolResult> => {
-  const parseResult = GetAuthorInfoArgsSchema.safeParse(args);
-
-  if (!parseResult.success) {
-    const errorMessages = parseResult.error.issues
-      .map((e) => `${e.path.join(".")}: ${e.message}`)
-      .join(", ");
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Invalid arguments for get_author_info: ${errorMessages}`,
-    );
-  }
-
-  const authorKey = parseResult.data.author_key;
+const handleGetAuthorInfo: ToolHandler = async (args, clients) => {
+  const { author_key: authorKey } = parseArgs(
+    GetAuthorInfoArgsSchema,
+    args,
+    "get_author_info",
+  );
 
   try {
-    const response = await axiosInstance.get<DetailedAuthorInfo>(
+    const response = await clients.api.get<DetailedAuthorInfo>(
       `/authors/${authorKey}.json`,
     );
 
     if (!response.data) {
-      // Should not happen if API returns 200, but good practice
-      return {
-        content: [
-          {
-            type: "text",
-            text: `No data found for author key: "${authorKey}"`,
-          },
-        ],
-      };
+      return textResult(`No data found for author key: "${authorKey}"`);
     }
 
-    // Optionally format the bio if it's an object
     const authorData = { ...response.data };
     if (typeof authorData.bio === "object" && authorData.bio !== null) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      authorData.bio = (authorData.bio as any).value; // Adjust type assertion if needed
+      authorData.bio = (authorData.bio as any).value;
     }
 
-    return {
-      content: [
-        {
-          type: "text",
-          // Return the full author details as JSON
-          text: JSON.stringify(authorData, null, 2),
-        },
-      ],
-    };
+    return jsonResult(authorData);
   } catch (error) {
-    let errorMessage = `Failed to fetch author data for key ${authorKey}.`;
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 404) {
-        errorMessage = `Author with key "${authorKey}" not found.`;
-      } else {
-        errorMessage = `Open Library API error: ${
-          error.response?.statusText ?? error.message
-        }`;
-      }
-    } else if (error instanceof Error) {
-      errorMessage = `Error processing request: ${error.message}`;
+    if (isNotFound(error)) {
+      return errorTextResult(`Author with key "${authorKey}" not found.`);
     }
-    console.error(`Error in get_author_info (${authorKey}):`, error);
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: errorMessage,
-        },
-      ],
-      isError: true,
-    };
+    return toErrorResult(error, "get_author_info");
   }
+};
+
+export const getAuthorInfoTool: ToolDefinition = {
+  name: "get_author_info",
+  title: "Get author details",
+  description:
+    "Get detailed information for a specific author using their Open Library Author Key (e.g. OL23919A).",
+  schema: GetAuthorInfoArgsSchema,
+  annotations: READ_ONLY_LOOKUP,
+  handler: handleGetAuthorInfo,
 };
 
 export { handleGetAuthorInfo };

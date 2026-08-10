@@ -1,105 +1,120 @@
-import { McpError } from "@modelcontextprotocol/sdk/types.js";
 import { describe, expect, it, vi, beforeEach } from "vitest";
+
+import { InvalidArgumentsError } from "../../utils/errors.js";
+import { OpenLibraryClients } from "../../utils/http.js";
+import { SEARCH_FIELDS, SearchResults } from "../../utils/search.js";
 
 import { handleGetBookByTitle, GetBookByTitleArgsSchema } from "./index.js";
 
-// Mock axios
-vi.mock("axios");
+function parsePayload(
+  result: Awaited<ReturnType<typeof handleGetBookByTitle>>,
+): SearchResults {
+  return JSON.parse(
+    (result.content[0] as { type: "text"; text: string }).text,
+  ) as SearchResults;
+}
 
 describe("handleGetBookByTitle", () => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let mockAxiosInstance: any;
+  let get: ReturnType<typeof vi.fn>;
+  let clients: OpenLibraryClients;
 
   beforeEach(() => {
-    mockAxiosInstance = {
-      get: vi.fn(),
-    };
+    get = vi.fn();
+    clients = {
+      api: { get },
+      covers: { head: vi.fn() },
+    } as unknown as OpenLibraryClients;
   });
 
   it("should return book data when title is valid and books are found", async () => {
-    // Mock response data
-    const mockResponseData = {
-      docs: [
-        {
-          title: "Test Book",
-          author_name: ["Author One", "Author Two"],
-          first_publish_year: 2020,
-          key: "/works/test123",
-          edition_count: 5,
-          cover_i: 12345,
-        },
-      ],
-    };
-
-    mockAxiosInstance.get.mockResolvedValue({ data: mockResponseData });
-
-    const result = await handleGetBookByTitle(
-      { title: "Test Book" },
-      mockAxiosInstance,
-    );
-
-    expect(mockAxiosInstance.get).toHaveBeenCalledWith("/search.json", {
-      params: { title: "Test Book" },
+    get.mockResolvedValue({
+      data: {
+        numFound: 42,
+        docs: [
+          {
+            title: "Test Book",
+            author_name: ["Author One", "Author Two"],
+            author_key: ["OL1A", "OL2A"],
+            first_publish_year: 2020,
+            key: "/works/test123",
+            edition_count: 5,
+            cover_i: 12345,
+            ratings_average: 3.957627118644068,
+            ebook_access: "borrowable",
+          },
+        ],
+      },
     });
 
-    expect(result).toEqual({
-      content: [
+    const result = await handleGetBookByTitle({ title: "Test Book" }, clients);
+
+    expect(get).toHaveBeenCalledWith("/search.json", {
+      params: {
+        title: "Test Book",
+        fields: SEARCH_FIELDS,
+        limit: 10,
+        offset: 0,
+      },
+    });
+
+    expect(parsePayload(result)).toEqual({
+      num_found: 42,
+      offset: 0,
+      limit: 10,
+      results: [
         {
-          type: "text",
-          text: JSON.stringify(
-            [
-              {
-                title: "Test Book",
-                authors: ["Author One", "Author Two"],
-                first_publish_year: 2020,
-                open_library_work_key: "/works/test123",
-                edition_count: 5,
-                cover_url: "https://covers.openlibrary.org/b/id/12345-M.jpg",
-              },
-            ],
-            null,
-            2,
-          ),
+          title: "Test Book",
+          authors: ["Author One", "Author Two"],
+          author_keys: ["OL1A", "OL2A"],
+          first_publish_year: 2020,
+          open_library_work_key: "/works/test123",
+          edition_count: 5,
+          cover_url: "https://covers.openlibrary.org/b/id/12345-M.jpg",
+          ratings_average: 3.96,
+          ebook_access: "borrowable",
         },
       ],
     });
   });
 
-  it("should handle book with missing optional fields", async () => {
-    // Mock response with missing optional fields
-    const mockResponseData = {
-      docs: [
-        {
-          title: "Minimal Book",
-          key: "/works/minimal123",
-        },
-      ],
-    };
+  it("should pass through limit and offset", async () => {
+    get.mockResolvedValue({
+      data: { numFound: 500, docs: [{ title: "A", key: "/works/a" }] },
+    });
 
-    mockAxiosInstance.get.mockResolvedValue({ data: mockResponseData });
+    const result = await handleGetBookByTitle(
+      { title: "dune", limit: 3, offset: 20 },
+      clients,
+    );
+
+    expect(get).toHaveBeenCalledWith("/search.json", {
+      params: { title: "dune", fields: SEARCH_FIELDS, limit: 3, offset: 20 },
+    });
+
+    const payload = parsePayload(result);
+    expect(payload.limit).toBe(3);
+    expect(payload.offset).toBe(20);
+    expect(payload.num_found).toBe(500);
+  });
+
+  it("should reject a limit above the maximum", async () => {
+    await expect(
+      handleGetBookByTitle({ title: "dune", limit: 51 }, clients),
+    ).rejects.toThrow(InvalidArgumentsError);
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it("should handle book with missing optional fields", async () => {
+    get.mockResolvedValue({
+      data: { docs: [{ title: "Minimal Book", key: "/works/minimal123" }] },
+    });
 
     const result = await handleGetBookByTitle(
       { title: "Minimal Book" },
-      mockAxiosInstance,
+      clients,
     );
 
-    expect(
-      (result.content[0] as { type: "text"; text: string }).text,
-    ).toContain("Minimal Book");
-    expect(
-      (
-        JSON.parse(
-          (result.content[0] as { type: "text"; text: string }).text,
-        ) as Array<{
-          title: string;
-          authors: string[];
-          first_publish_year: number | null;
-          open_library_work_key: string;
-          edition_count: number;
-          cover_url?: string;
-        }>
-      )[0],
-    ).toEqual({
+    expect(parsePayload(result).results[0]).toEqual({
       title: "Minimal Book",
       authors: [],
       first_publish_year: null,
@@ -108,12 +123,22 @@ describe("handleGetBookByTitle", () => {
     });
   });
 
+  it("should fall back to the returned document count when numFound is absent", async () => {
+    get.mockResolvedValue({
+      data: { docs: [{ title: "Only", key: "/works/only" }] },
+    });
+
+    const result = await handleGetBookByTitle({ title: "Only" }, clients);
+
+    expect(parsePayload(result).num_found).toBe(1);
+  });
+
   it("should return appropriate message when no books are found", async () => {
-    mockAxiosInstance.get.mockResolvedValue({ data: { docs: [] } });
+    get.mockResolvedValue({ data: { docs: [] } });
 
     const result = await handleGetBookByTitle(
       { title: "Nonexistent Book" },
-      mockAxiosInstance,
+      clients,
     );
 
     expect(result).toEqual({
@@ -126,42 +151,36 @@ describe("handleGetBookByTitle", () => {
     });
   });
 
-  it("should throw McpError for invalid arguments", async () => {
-    await expect(async () => {
-      await handleGetBookByTitle({ title: "" }, mockAxiosInstance);
-    }).rejects.toThrow(McpError);
+  it("should reject for invalid arguments", async () => {
+    await expect(handleGetBookByTitle({ title: "" }, clients)).rejects.toThrow(
+      InvalidArgumentsError,
+    );
 
-    await expect(async () => {
-      await handleGetBookByTitle(
-        { wrongParam: "something" },
-        mockAxiosInstance,
-      );
-    }).rejects.toThrow(McpError);
+    await expect(
+      handleGetBookByTitle({ wrongParam: "something" }, clients),
+    ).rejects.toThrow(InvalidArgumentsError);
 
-    await expect(async () => {
-      await handleGetBookByTitle(null, mockAxiosInstance);
-    }).rejects.toThrow(McpError);
+    await expect(handleGetBookByTitle(null, clients)).rejects.toThrow(
+      InvalidArgumentsError,
+    );
   });
 
-  it("should handle API errors properly", async () => {
-    const axiosError = new Error("Network Error");
+  it("should report the status code for API errors", async () => {
+    const axiosError = new Error("Request failed");
     Object.defineProperty(axiosError, "isAxiosError", { value: true });
     Object.defineProperty(axiosError, "response", {
-      value: { statusText: "Service Unavailable" },
+      value: { status: 503, statusText: "Service Unavailable" },
     });
 
-    mockAxiosInstance.get.mockRejectedValue(axiosError);
+    get.mockRejectedValue(axiosError);
 
-    const result = await handleGetBookByTitle(
-      { title: "Test Book" },
-      mockAxiosInstance,
-    );
+    const result = await handleGetBookByTitle({ title: "Test Book" }, clients);
 
     expect(result).toEqual({
       content: [
         {
           type: "text",
-          text: "Error processing request: Network Error",
+          text: "Open Library API error: 503 Service Unavailable",
         },
       ],
       isError: true,
@@ -169,19 +188,13 @@ describe("handleGetBookByTitle", () => {
   });
 
   it("should handle non-axios errors", async () => {
-    mockAxiosInstance.get.mockRejectedValue(new Error("Unknown Error"));
+    get.mockRejectedValue(new Error("Unknown Error"));
 
-    const result = await handleGetBookByTitle(
-      { title: "Test Book" },
-      mockAxiosInstance,
-    );
+    const result = await handleGetBookByTitle({ title: "Test Book" }, clients);
 
     expect(result).toEqual({
       content: [
-        {
-          type: "text",
-          text: "Error processing request: Unknown Error",
-        },
+        { type: "text", text: "Open Library API error: Unknown Error" },
       ],
       isError: true,
     });
@@ -195,14 +208,25 @@ describe("handleGetBookByTitle", () => {
       expect(result.success).toBe(true);
     });
 
+    it("should apply default limit and offset", () => {
+      const result = GetBookByTitleArgsSchema.parse({ title: "Valid Title" });
+      expect(result).toEqual({ title: "Valid Title", limit: 10, offset: 0 });
+    });
+
     it("should reject empty title", () => {
-      const result = GetBookByTitleArgsSchema.safeParse({ title: "" });
-      expect(result.success).toBe(false);
+      expect(GetBookByTitleArgsSchema.safeParse({ title: "" }).success).toBe(
+        false,
+      );
     });
 
     it("should reject missing title", () => {
-      const result = GetBookByTitleArgsSchema.safeParse({});
-      expect(result.success).toBe(false);
+      expect(GetBookByTitleArgsSchema.safeParse({}).success).toBe(false);
+    });
+
+    it("should reject a non-integer limit", () => {
+      expect(
+        GetBookByTitleArgsSchema.safeParse({ title: "x", limit: 2.5 }).success,
+      ).toBe(false);
     });
   });
 });

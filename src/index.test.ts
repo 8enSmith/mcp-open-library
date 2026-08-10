@@ -12,8 +12,11 @@ import axios from "axios";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Mock } from "vitest";
 
+import { TOOLS } from "./tools/registry.js";
+import { SEARCH_FIELDS } from "./utils/search.js";
+
 import { OpenLibraryServer } from "./index.js";
-// Mock the MCP Server and its methods
+
 vi.mock("@modelcontextprotocol/sdk/server/index.js", () => {
   const mockServer = {
     setRequestHandler: vi.fn(),
@@ -26,14 +29,10 @@ vi.mock("@modelcontextprotocol/sdk/server/index.js", () => {
   };
 });
 
-// Mock axios
 vi.mock("axios");
-const mockedAxios = vi.mocked(axios, true); // Use true for deep mocking
+const mockedAxios = vi.mocked(axios, true);
 
 describe("OpenLibraryServer", () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let serverInstance: OpenLibraryServer;
-  // Explicitly type the mock server instance based on the mocked structure
   let mockMcpServer: {
     setRequestHandler: Mock<
       (schema: any, handler: (...args: any[]) => Promise<any>) => void
@@ -43,14 +42,25 @@ describe("OpenLibraryServer", () => {
     onerror: Mock<(error: any) => void>;
   };
 
+  function getHandler(schema: unknown) {
+    const handler = mockMcpServer.setRequestHandler.mock.calls.find(
+      (call: [any, (...args: any[]) => Promise<any>]) => call[0] === schema,
+    )?.[1];
+    expect(handler).toBeDefined();
+    return handler as (request: any) => Promise<any>;
+  }
+
+  const listTools = () => getHandler(ListToolsRequestSchema)({});
+  const callTool = (name: string, args: unknown) =>
+    getHandler(CallToolRequestSchema)({ params: { name, arguments: args } });
+
   beforeEach(() => {
-    // Reset mocks before each test
     vi.clearAllMocks();
-    // Create a new instance, which will internally create a mocked Server
-    serverInstance = new OpenLibraryServer();
-    // Get the mocked MCP Server instance created by the constructor
+    // Both clients are created in the constructor, so the return value has to
+    // be in place before the server is built.
+    mockedAxios.create.mockReturnThis();
+    new OpenLibraryServer();
     mockMcpServer = (Server as any).mock.results[0].value;
-    mockedAxios.create.mockReturnThis(); // Ensure axios.create() returns the mocked instance
   });
 
   it("reports the version from package.json", () => {
@@ -64,314 +74,169 @@ describe("OpenLibraryServer", () => {
     expect(implementation.name).toBe("open-library-server");
   });
 
-  describe("get_book_by_title tool", () => {
-    it("should correctly list the get_book_by_title tool", async () => {
-      // Find the handler registered for ListToolsRequestSchema
-      const listToolsHandler = mockMcpServer.setRequestHandler.mock.calls.find(
-        (call: [any, (...args: any[]) => Promise<any>]) =>
-          call[0] === ListToolsRequestSchema,
-      )?.[1];
+  describe("ListTools", () => {
+    it("lists every tool in the registry", async () => {
+      const result = await listTools();
 
-      expect(listToolsHandler).toBeDefined();
+      expect(result.tools).toHaveLength(TOOLS.length);
+      expect(result.tools.map((tool: any) => tool.name)).toEqual(
+        TOOLS.map((tool) => tool.name),
+      );
+    });
 
-      if (listToolsHandler) {
-        const result = await listToolsHandler({} as any); // Call the handler
-        expect(result.tools).toHaveLength(6);
-        expect(result.tools[0].name).toBe("get_book_by_title");
-        expect(result.tools[0].description).toBeDefined();
-        expect(result.tools[0].inputSchema).toEqual({
-          type: "object",
-          properties: {
-            title: {
-              type: "string",
-              description: "The title of the book to search for.",
-            },
-          },
-          required: ["title"],
+    it("gives every tool a unique name, a title, a description and an object schema", async () => {
+      const result = await listTools();
+      const names = result.tools.map((tool: any) => tool.name);
+
+      expect(new Set(names).size).toBe(names.length);
+      for (const tool of result.tools) {
+        expect(tool.title, `${tool.name} title`).toBeTruthy();
+        expect(tool.description, `${tool.name} description`).toBeTruthy();
+        expect(tool.inputSchema.type, `${tool.name} schema`).toBe("object");
+      }
+    });
+
+    // Every tool is a read-only lookup, which lets clients skip the
+    // confirmation prompt they show for tools that might change something.
+    it("marks every tool read-only and open-world", async () => {
+      const result = await listTools();
+
+      for (const tool of result.tools) {
+        expect(tool.annotations, `${tool.name} annotations`).toEqual({
+          readOnlyHint: true,
+          openWorldHint: true,
         });
       }
+    });
+
+    // Generated from each tool's zod schema, so this snapshot is the review
+    // surface for any change to what clients are told a tool accepts.
+    it("matches the published tool schemas", async () => {
+      const result = await listTools();
+      expect(result.tools).toMatchSnapshot();
     });
   });
 
-  describe("get_authors_by_name tool", () => {
-    it("should correctly list the get_authors_by_name tool", async () => {
-      const listToolsHandler = mockMcpServer.setRequestHandler.mock.calls.find(
-        (call: [any, (...args: any[]) => Promise<any>]) =>
-          call[0] === ListToolsRequestSchema,
-      )?.[1];
+  describe("CallTool", () => {
+    it("routes search_books to the Open Library search endpoint", async () => {
+      mockedAxios.get.mockResolvedValue({
+        data: { numFound: 1, docs: [{ title: "Dune", key: "/works/OL1W" }] },
+      });
 
-      expect(listToolsHandler).toBeDefined();
+      const result = await callTool("search_books", { q: "dune", limit: 1 });
 
-      if (listToolsHandler) {
-        const result = await listToolsHandler({} as any);
-        expect(result.tools).toHaveLength(6);
-        const authorTool = result.tools.find(
-          (tool: any) => tool.name === "get_authors_by_name",
-        );
-        expect(authorTool).toBeDefined();
-        expect(authorTool.description).toBeDefined();
-        expect(authorTool.inputSchema).toEqual({
-          type: "object",
-          properties: {
-            name: {
-              type: "string",
-              description: "The name of the author to search for.",
-            },
-          },
-          required: ["name"],
-        });
-      }
+      expect(mockedAxios.get).toHaveBeenCalledWith("/search.json", {
+        params: { fields: SEARCH_FIELDS, limit: 1, offset: 0, q: "dune" },
+      });
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text).num_found).toBe(1);
     });
 
-    it("should handle CallTool request for get_authors_by_name successfully", async () => {
-      const callToolHandler = mockMcpServer.setRequestHandler.mock.calls.find(
-        (call: [any, (...args: any[]) => Promise<any>]) =>
-          call[0] === CallToolRequestSchema,
-      )?.[1];
-
-      expect(callToolHandler).toBeDefined();
-
-      if (callToolHandler) {
-        const mockApiResponse = {
-          data: {
-            docs: [
-              {
-                key: "OL23919A",
-                name: "J. R. R. Tolkien",
-                alternate_names: ["John Ronald Reuel Tolkien"],
-                birth_date: "3 January 1892",
-                top_work: "The Lord of the Rings",
-                work_count: 150,
-              },
-            ],
-          },
-        };
-        mockedAxios.get.mockResolvedValue(mockApiResponse);
-
-        const mockRequest = {
-          params: {
-            name: "get_authors_by_name",
-            arguments: { name: "J. R. R. Tolkien" },
-          },
-        };
-
-        const result = await callToolHandler(mockRequest as any);
-
-        expect(mockedAxios.get).toHaveBeenCalledWith("/search/authors.json", {
-          params: { q: "J. R. R. Tolkien" },
-        });
-        expect(result.isError).toBeUndefined();
-        expect(result.content).toHaveLength(1);
-        expect(result.content[0].type).toBe("text");
-        const expectedAuthorInfo = [
-          {
-            key: "OL23919A",
-            name: "J. R. R. Tolkien",
-            alternate_names: ["John Ronald Reuel Tolkien"],
-            birth_date: "3 January 1892",
-            top_work: "The Lord of the Rings",
-            work_count: 150,
-          },
-        ];
-        expect(JSON.parse(result.content[0].text)).toEqual(expectedAuthorInfo);
-      }
-    });
-  });
-
-  describe("get_author_info tool", () => {
-    it("should correctly list the get_author_info tool", async () => {
-      const listToolsHandler = mockMcpServer.setRequestHandler.mock.calls.find(
-        (call: [any, (...args: any[]) => Promise<any>]) =>
-          call[0] === ListToolsRequestSchema,
-      )?.[1];
-
-      expect(listToolsHandler).toBeDefined();
-
-      if (listToolsHandler) {
-        const result = await listToolsHandler({} as any);
-        expect(result.tools).toHaveLength(6);
-        const authorInfoTool = result.tools.find(
-          (tool: any) => tool.name === "get_author_info",
-        );
-        expect(authorInfoTool).toBeDefined();
-        expect(authorInfoTool.description).toBeDefined();
-        expect(authorInfoTool.inputSchema).toEqual({
-          type: "object",
-          properties: {
-            author_key: {
-              type: "string",
-              description:
-                "The Open Library key for the author (e.g., OL23919A).",
-            },
-          },
-          required: ["author_key"],
-        });
-      }
-    });
-
-    it("should handle CallTool request for get_author_info successfully", async () => {
-      const callToolHandler = mockMcpServer.setRequestHandler.mock.calls.find(
-        (call: [any, (...args: any[]) => Promise<any>]) =>
-          call[0] === CallToolRequestSchema,
-      )?.[1];
-
-      expect(callToolHandler).toBeDefined();
-
-      if (callToolHandler) {
-        const mockApiResponse = {
-          data: {
-            key: "/authors/OL23919A",
-            name: "J. R. R. Tolkien",
-            birth_date: "3 January 1892",
-            death_date: "2 September 1973",
-            bio: "British writer, poet, philologist, and university professor",
-            photos: [12345],
-          },
-        };
-        mockedAxios.get.mockResolvedValue(mockApiResponse);
-
-        const mockRequest = {
-          params: {
-            name: "get_author_info",
-            arguments: { author_key: "OL23919A" },
-          },
-        };
-
-        const result = await callToolHandler(mockRequest as any);
-
-        expect(mockedAxios.get).toHaveBeenCalledWith("/authors/OL23919A.json");
-        expect(result.isError).toBeUndefined();
-        expect(result.content).toHaveLength(1);
-        expect(result.content[0].type).toBe("text");
-        expect(JSON.parse(result.content[0].text)).toEqual(
-          mockApiResponse.data,
-        );
-      }
-    });
-  });
-
-  describe("get_author_photo tool", () => {
-    it("should correctly list the get_author_photo tool", async () => {
-      const listToolsHandler = mockMcpServer.setRequestHandler.mock.calls.find(
-        (call: [any, (...args: any[]) => Promise<any>]) =>
-          call[0] === ListToolsRequestSchema,
-      )?.[1];
-
-      expect(listToolsHandler).toBeDefined();
-
-      if (listToolsHandler) {
-        const result = await listToolsHandler({} as any);
-        expect(result.tools).toHaveLength(6);
-        const authorPhotoTool = result.tools.find(
-          (tool: any) => tool.name === "get_author_photo",
-        );
-        expect(authorPhotoTool).toBeDefined();
-        expect(authorPhotoTool.description).toBeDefined();
-        expect(authorPhotoTool.inputSchema).toEqual({
-          type: "object",
-          properties: {
-            olid: {
-              type: "string",
-              description:
-                "The Open Library Author ID (OLID) for the author (e.g. OL23919A).",
-            },
-          },
-          required: ["olid"],
-        });
-      }
-    });
-
-    it("should handle CallTool request for get_author_photo successfully", async () => {
-      const callToolHandler = mockMcpServer.setRequestHandler.mock.calls.find(
-        (call: [any, (...args: any[]) => Promise<any>]) =>
-          call[0] === CallToolRequestSchema,
-      )?.[1];
-
-      expect(callToolHandler).toBeDefined();
-
-      if (callToolHandler) {
-        const mockRequest = {
-          params: {
-            name: "get_author_photo",
-            arguments: { olid: "OL23919A" },
-          },
-        };
-
-        const result = await callToolHandler(mockRequest as any);
-
-        expect(mockedAxios.get).not.toHaveBeenCalled(); // No API call expected
-        expect(result.isError).toBeUndefined();
-        expect(result.content).toHaveLength(1);
-        expect(result.content[0].type).toBe("text");
-        expect(result.content[0].text).toBe(
-          "https://covers.openlibrary.org/a/olid/OL23919A-L.jpg",
-        );
-      }
-    });
-  });
-
-  describe("get_book_cover tool", () => {
-    it("should correctly list the get_book_cover tool", async () => {
-      const listToolsHandler = mockMcpServer.setRequestHandler.mock.calls.find(
-        (call: [any, (...args: any[]) => Promise<any>]) =>
-          call[0] === ListToolsRequestSchema,
-      )?.[1];
-
-      expect(listToolsHandler).toBeDefined();
-
-      if (listToolsHandler) {
-        const result = await listToolsHandler({} as any);
-        expect(result.tools.length).toBeGreaterThanOrEqual(5);
-        const bookCoverTool = result.tools.find(
-          (tool: any) => tool.name === "get_book_cover",
-        );
-        expect(bookCoverTool).toBeDefined();
-        expect(bookCoverTool.description).toBeDefined();
-        expect(bookCoverTool.inputSchema).toEqual({
-          type: "object",
-          properties: {
-            key: {
-              type: "string",
-              enum: ["ISBN", "OCLC", "LCCN", "OLID", "ID"],
-              description:
-                "The type of identifier used (ISBN, OCLC, LCCN, OLID, ID).",
-            },
-            value: {
-              type: "string",
-              description: "The value of the identifier.",
-            },
-            size: {
-              type: "string",
-              enum: ["S", "M", "L"],
-              description: "The desired size of the cover (S, M, or L).",
-            },
-          },
-          required: ["key", "value"],
-        });
-      }
-    });
-  });
-
-  it("should handle CallTool request for an unknown tool", async () => {
-    const callToolHandler = mockMcpServer.setRequestHandler.mock.calls.find(
-      (call: [any, (...args: any[]) => Promise<any>]) =>
-        call[0] === CallToolRequestSchema,
-    )?.[1];
-
-    expect(callToolHandler).toBeDefined();
-
-    if (callToolHandler) {
-      const mockRequest = {
-        params: {
-          name: "unknown_tool",
-          arguments: { title: "The Hobbit" }, // Args don't matter here
+    it("handles get_authors_by_name", async () => {
+      const docs = [
+        {
+          key: "OL23919A",
+          name: "J. R. R. Tolkien",
+          alternate_names: ["John Ronald Reuel Tolkien"],
+          birth_date: "3 January 1892",
+          top_work: "The Lord of the Rings",
+          work_count: 150,
         },
-      };
+      ];
+      mockedAxios.get.mockResolvedValue({ data: { docs } });
 
-      await expect(callToolHandler(mockRequest as any)).rejects.toThrow(
+      const result = await callTool("get_authors_by_name", {
+        name: "J. R. R. Tolkien",
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/search/authors.json", {
+        params: { q: "J. R. R. Tolkien" },
+      });
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(docs);
+    });
+
+    it("handles get_author_info", async () => {
+      const data = {
+        key: "/authors/OL23919A",
+        name: "J. R. R. Tolkien",
+        birth_date: "3 January 1892",
+        death_date: "2 September 1973",
+        bio: "British writer, poet, philologist, and university professor",
+        photos: [12345],
+      };
+      mockedAxios.get.mockResolvedValue({ data });
+
+      const result = await callTool("get_author_info", {
+        author_key: "OL23919A",
+      });
+
+      expect(mockedAxios.get).toHaveBeenCalledWith("/authors/OL23919A.json");
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(data);
+    });
+
+    it("handles get_author_photo against the covers host", async () => {
+      mockedAxios.head.mockResolvedValue({ status: 200 });
+
+      const result = await callTool("get_author_photo", { olid: "OL23919A" });
+
+      expect(mockedAxios.head).toHaveBeenCalledWith("/a/olid/OL23919A-L.jpg", {
+        params: { default: false },
+        validateStatus: expect.any(Function),
+      });
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toBe(
+        "https://covers.openlibrary.org/a/olid/OL23919A-L.jpg",
+      );
+    });
+
+    // Failing to find a tool is one of the cases the spec keeps at the
+    // protocol level, so this stays a thrown McpError.
+    it("rejects an unknown tool as a protocol error", async () => {
+      await expect(
+        callTool("unknown_tool", { title: "The Hobbit" }),
+      ).rejects.toThrow(
         new McpError(ErrorCode.MethodNotFound, "Unknown tool: unknown_tool"),
       );
       expect(mockedAxios.get).not.toHaveBeenCalled();
-    }
+    });
+
+    // Everything the tool itself raises comes back as a tool error instead, so
+    // the model can read what was wrong and fix its next call.
+    it("returns rejected arguments as a tool error, not a protocol error", async () => {
+      const result = await callTool("search_books", { q: "dune", limit: 51 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toBe(
+        "Invalid arguments for search_books: limit: Too big: expected number to be <=50",
+      );
+      expect(mockedAxios.get).not.toHaveBeenCalled();
+    });
+
+    it("returns a missing search criterion as a tool error naming the options", async () => {
+      const result = await callTool("search_books", { limit: 5 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(
+        "Provide at least one search criterion: q, title, author, subject, place, person, publisher, isbn",
+      );
+    });
+
+    it("converts an unexpected handler throw into a tool error", async () => {
+      mockedAxios.get.mockImplementation(() => {
+        throw new TypeError("boom");
+      });
+      vi.spyOn(console, "error").mockImplementation(() => {});
+
+      const result = await callTool("get_author_info", {
+        author_key: "OL23919A",
+      });
+
+      // get_author_info catches its own request failures, so this lands on the
+      // generic Open Library message rather than the boundary's.
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toBe("Open Library API error: boom");
+    });
   });
 });
