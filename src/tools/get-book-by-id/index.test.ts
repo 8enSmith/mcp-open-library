@@ -1,33 +1,27 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
-import { describe, it, expect, beforeEach, vi, Mock } from "vitest"; // Use vitest imports
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-import { OpenLibraryBookResponse } from "./types.js"; // Import necessary type
+import { axiosErrorWithStatus } from "../../test-support/axios-error.js";
+import { InvalidArgumentsError } from "../../utils/errors.js";
+import { OpenLibraryClients } from "../../utils/http.js";
+
+import { OpenLibraryBookResponse } from "./types.js";
 
 import { handleGetBookById } from "./index.js";
 
-// Mock axios using vitest
-vi.mock("axios");
-
-// Create a mock Axios instance type using vitest Mock
-type MockAxiosInstance = {
-  get: Mock; // Use Mock from vitest
-};
-
 describe("handleGetBookById", () => {
-  let mockAxiosInstance: MockAxiosInstance;
+  let get: ReturnType<typeof vi.fn>;
+  let clients: OpenLibraryClients;
 
   beforeEach(() => {
-    // Reset mocks before each test using vitest
-    vi.clearAllMocks();
-    // Create a fresh mock instance for each test using vitest
-    mockAxiosInstance = {
-      get: vi.fn(), // Use vi.fn()
-    };
+    get = vi.fn();
+    clients = {
+      api: { get },
+      covers: { head: vi.fn() },
+    } as unknown as OpenLibraryClients;
   });
 
   it("should return book details when given a valid OLID", async () => {
-    const mockArgs = { idType: "olid", idValue: "OL7353617M" };
     const mockApiResponse: OpenLibraryBookResponse = {
       records: {
         "/books/OL7353617M": {
@@ -68,25 +62,18 @@ describe("handleGetBookById", () => {
           },
         },
       },
-      items: [], // Add required items property
+      items: [],
     };
 
-    mockAxiosInstance.get.mockResolvedValue({ data: mockApiResponse });
+    get.mockResolvedValue({ data: mockApiResponse });
 
-    const result = await handleGetBookById(mockArgs, mockAxiosInstance as any); // Cast to any for simplicity
-
-    expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-      "/api/volumes/brief/olid/OL7353617M.json",
+    const result = await handleGetBookById(
+      { idType: "olid", idValue: "OL7353617M" },
+      clients,
     );
-    expect(result).toEqual({
-      content: [
-        {
-          type: "text",
-          text: expect.stringContaining('"title": "The Lord of the Rings"'),
-        },
-      ],
-    });
-    // Check specific fields in the parsed JSON
+
+    expect(get).toHaveBeenCalledWith("/api/volumes/brief/olid/OL7353617M.json");
+
     const parsedResult = JSON.parse(
       (result.content[0] as { type: "text"; text: string }).text,
     );
@@ -94,8 +81,8 @@ describe("handleGetBookById", () => {
     expect(parsedResult).toHaveProperty("authors", ["J.R.R. Tolkien"]);
     expect(parsedResult).toHaveProperty("publish_date", "1954");
     expect(parsedResult).toHaveProperty("number_of_pages", 1216);
-    expect(parsedResult).toHaveProperty("isbn_10", ["061826027X"]); // Should be array from details
-    expect(parsedResult).toHaveProperty("olid", ["OL7353617M"]); // Should be array from identifiers
+    expect(parsedResult).toHaveProperty("isbn_10", ["061826027X"]);
+    expect(parsedResult).toHaveProperty("olid", ["OL7353617M"]);
     expect(parsedResult).toHaveProperty(
       "open_library_edition_key",
       "/books/OL7353617M",
@@ -119,7 +106,6 @@ describe("handleGetBookById", () => {
   });
 
   it("should return book details when given a valid ISBN", async () => {
-    const mockArgs = { idType: "isbn", idValue: "9780547928227" };
     const mockApiResponse: OpenLibraryBookResponse = {
       records: {
         "isbn:9780547928227": {
@@ -135,28 +121,21 @@ describe("handleGetBookById", () => {
             key: "/books/OL25189068M",
             url: "https://openlibrary.org/books/OL25189068M/The_Hobbit",
           },
-          details: {
-            /* ... potentially more details ... */
-          } as any, // Cast for brevity
+          details: {} as any,
         },
       },
-      items: [], // Add required items property
+      items: [],
     };
-    mockAxiosInstance.get.mockResolvedValue({ data: mockApiResponse });
+    get.mockResolvedValue({ data: mockApiResponse });
 
-    const result = await handleGetBookById(mockArgs, mockAxiosInstance as any);
+    const result = await handleGetBookById(
+      { idType: "isbn", idValue: "9780547928227" },
+      clients,
+    );
 
-    expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+    expect(get).toHaveBeenCalledWith(
       "/api/volumes/brief/isbn/9780547928227.json",
     );
-    expect(result).toEqual({
-      content: [
-        {
-          type: "text",
-          text: expect.stringContaining('"title": "The Hobbit"'),
-        },
-      ],
-    });
     const parsedResult = JSON.parse(
       (result.content[0] as { type: "text"; text: string }).text,
     );
@@ -165,117 +144,117 @@ describe("handleGetBookById", () => {
     expect(parsedResult).toHaveProperty("olid", ["OL25189068M"]);
   });
 
-  it("should throw McpError for invalid arguments", async () => {
-    const invalidArgs = { idType: "invalid", idValue: "123" }; // Invalid idType
+  it("should accept an uppercase idType", async () => {
+    get.mockResolvedValue({ data: { records: {}, items: [] } });
 
-    await expect(
-      handleGetBookById(invalidArgs, mockAxiosInstance as any),
-    ).rejects.toThrow(McpError);
+    await handleGetBookById({ idType: "ISBN", idValue: "123" }, clients);
+
+    expect(get).toHaveBeenCalledWith("/api/volumes/brief/isbn/123.json");
+  });
+
+  it("should reject for invalid arguments", async () => {
+    const invalidArgs = { idType: "invalid", idValue: "123" };
+
+    await expect(handleGetBookById(invalidArgs, clients)).rejects.toThrow(
+      InvalidArgumentsError,
+    );
 
     try {
-      await handleGetBookById(invalidArgs, mockAxiosInstance as any);
+      await handleGetBookById(invalidArgs, clients);
+      expect.unreachable("expected handleGetBookById to throw");
     } catch (error) {
-      expect(error).toBeInstanceOf(McpError);
-      expect((error as McpError).code).toBe(ErrorCode.InvalidParams);
-      expect((error as McpError).message).toContain(
+      expect(error).toBeInstanceOf(InvalidArgumentsError);
+      expect((error as Error).message).toContain(
         "Invalid arguments for get_book_by_id",
       );
-      expect((error as McpError).message).toContain(
+      expect((error as Error).message).toContain(
         "idType must be one of: isbn, lccn, oclc, olid",
       );
     }
-    expect(mockAxiosInstance.get).not.toHaveBeenCalled();
+    expect(get).not.toHaveBeenCalled();
   });
 
+  // An empty `records` object on a 200 is how this endpoint usually reports a
+  // miss, so it has to be flagged the same way as the 404 below — one outcome,
+  // one result shape.
   it('should return "No book found" message when API returns empty records', async () => {
-    const mockArgs = { idType: "olid", idValue: "OL_NONEXISTENT" };
-    const mockApiResponse: OpenLibraryBookResponse = {
-      records: {},
-      items: [],
-    }; // Empty records
+    get.mockResolvedValue({ data: { records: {}, items: [] } });
 
-    mockAxiosInstance.get.mockResolvedValue({ data: mockApiResponse });
-
-    const result = await handleGetBookById(mockArgs, mockAxiosInstance as any);
-
-    expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-      "/api/volumes/brief/olid/OL_NONEXISTENT.json",
+    const result = await handleGetBookById(
+      { idType: "olid", idValue: "OL_NONEXISTENT" },
+      clients,
     );
+
     expect(result).toEqual({
       content: [
-        {
-          type: "text",
-          text: "No book found for olid: OL_NONEXISTENT",
-        },
+        { type: "text", text: "No book found for olid: OL_NONEXISTENT" },
       ],
+      isError: true,
+    });
+  });
+
+  it("should flag an unusable record as an error", async () => {
+    get.mockResolvedValue({ data: { records: { "/books/OL1M": undefined } } });
+
+    const result = await handleGetBookById(
+      { idType: "olid", idValue: "OL1M" },
+      clients,
+    );
+
+    expect(result).toEqual({
+      content: [
+        { type: "text", text: "Could not process book record for olid: OL1M" },
+      ],
+      isError: true,
     });
   });
 
   it('should return "No book found" message on 404 API error', async () => {
-    const mockArgs = { idType: "isbn", idValue: "0000000000" };
-    const axiosError = {
-      isAxiosError: true,
-      response: { status: 404, statusText: "Not Found" },
-      message: "Request failed with status code 404",
-    };
-    mockAxiosInstance.get.mockRejectedValue(axiosError);
+    get.mockRejectedValue(axiosErrorWithStatus(404, "Not Found"));
 
-    const result = await handleGetBookById(mockArgs, mockAxiosInstance as any);
-
-    expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-      "/api/volumes/brief/isbn/0000000000.json",
+    const result = await handleGetBookById(
+      { idType: "isbn", idValue: "0000000000" },
+      clients,
     );
+
     expect(result).toEqual({
-      content: [
-        {
-          type: "text",
-          text: "Failed to fetch book data from Open Library.", // Specific message for 404
-        },
-      ],
+      content: [{ type: "text", text: "No book found for isbn: 0000000000" }],
+      isError: true,
     });
   });
 
-  it("should return generic API error message for non-404 errors", async () => {
-    const mockArgs = { idType: "olid", idValue: "OL1M" };
-    const axiosError = {
-      isAxiosError: true,
-      response: { status: 500, statusText: "Internal Server Error" },
-      message: "Request failed with status code 500",
-    };
-    mockAxiosInstance.get.mockRejectedValue(axiosError);
+  it("should report the status for non-404 API errors", async () => {
+    get.mockRejectedValue(axiosErrorWithStatus(500, "Internal Server Error"));
 
-    const result = await handleGetBookById(mockArgs, mockAxiosInstance as any);
-
-    expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-      "/api/volumes/brief/olid/OL1M.json",
+    const result = await handleGetBookById(
+      { idType: "olid", idValue: "OL1M" },
+      clients,
     );
+
     expect(result).toEqual({
       content: [
         {
           type: "text",
-          text: "Failed to fetch book data from Open Library.", // Generic API error
+          text: "Open Library API error: 500 Internal Server Error",
         },
       ],
+      isError: true,
     });
   });
 
-  it("should return generic error message for non-Axios errors", async () => {
-    const mockArgs = { idType: "olid", idValue: "OL1M" };
-    const genericError = new Error("Network Failure");
-    mockAxiosInstance.get.mockRejectedValue(genericError);
+  it("should return a generic error message for non-Axios errors", async () => {
+    get.mockRejectedValue(new Error("Network Failure"));
 
-    const result = await handleGetBookById(mockArgs, mockAxiosInstance as any);
-
-    expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-      "/api/volumes/brief/olid/OL1M.json",
+    const result = await handleGetBookById(
+      { idType: "olid", idValue: "OL1M" },
+      clients,
     );
+
     expect(result).toEqual({
       content: [
-        {
-          type: "text",
-          text: "Error processing request: Network Failure", // Generic processing error
-        },
+        { type: "text", text: "Open Library API error: Network Failure" },
       ],
+      isError: true,
     });
   });
 });

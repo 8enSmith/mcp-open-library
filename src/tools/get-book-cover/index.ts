@@ -1,45 +1,50 @@
-import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
-// Schema for the get_book_cover tool arguments
+import { resolveCoverUrl } from "../../utils/covers.js";
+import { parseArgs } from "../../utils/errors.js";
+import { READ_ONLY_LOOKUP, ToolDefinition, ToolHandler } from "../types.js";
+
 export const GetBookCoverArgsSchema = z.object({
-  key: z.enum(["ISBN", "OCLC", "LCCN", "OLID", "ID"], {
-    message: "Key must be one of ISBN, OCLC, LCCN, OLID, ID",
-  }),
-  value: z.string().min(1, { message: "Value cannot be empty" }),
+  key: z
+    .enum(["ISBN", "OCLC", "LCCN", "OLID", "ID"], {
+      message: "Key must be one of ISBN, OCLC, LCCN, OLID, ID",
+    })
+    .describe(
+      "The type of identifier used (ISBN, OCLC, LCCN, OLID, ID). ID is Open Library's internal cover ID.",
+    ),
+  value: z
+    .string()
+    .min(1, { message: "Value cannot be empty" })
+    .describe("The value of the identifier."),
   size: z
-    .nullable(z.enum(["S", "M", "L"]))
-    .optional()
-    .transform((val) => val || "L"),
+    .enum(["S", "M", "L"])
+    .default("L")
+    .describe("The desired size of the cover (S, M, or L). Defaults to L."),
 });
 
-const handleGetBookCover = async (args: unknown) => {
-  const parseResult = GetBookCoverArgsSchema.safeParse(args);
+const handleGetBookCover: ToolHandler = async (args, clients) => {
+  const { key, value, size } = parseArgs(
+    GetBookCoverArgsSchema,
+    args,
+    "get_book_cover",
+  );
 
-  if (!parseResult.success) {
-    const errorMessages = parseResult.error.issues
-      .map((e) => `${e.path.join(".")}: ${e.message}`)
-      .join(", ");
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Invalid arguments for get_book_cover: ${errorMessages}`,
-    );
-  }
+  return resolveCoverUrl(
+    clients.covers,
+    `/b/${key.toLowerCase()}/${value}-${size}.jpg`,
+    `No cover image available for ${key} ${value}.`,
+    "get_book_cover",
+  );
+};
 
-  const { key, value, size } = parseResult.data;
-
-  // Construct the URL according to the Open Library Covers API format
-  const coverUrl = `https://covers.openlibrary.org/b/${key.toLowerCase()}/${value}-${size}.jpg`;
-
-  return {
-    content: [
-      {
-        type: "text",
-        text: coverUrl,
-      },
-    ],
-  };
-  // No try/catch needed here as we are just constructing a URL string based on validated input.
+export const getBookCoverTool: ToolDefinition = {
+  name: "get_book_cover",
+  title: "Get book cover URL",
+  description:
+    "Get the URL for a book's cover image using a key (ISBN, OCLC, LCCN, OLID, ID) and value. Reports when no cover exists rather than returning a URL to a blank placeholder.",
+  schema: GetBookCoverArgsSchema,
+  annotations: READ_ONLY_LOOKUP,
+  handler: handleGetBookCover,
 };
 
 export { handleGetBookCover };

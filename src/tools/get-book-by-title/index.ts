@@ -1,109 +1,58 @@
-import {
-  CallToolResult,
-  ErrorCode,
-  McpError,
-} from "@modelcontextprotocol/sdk/types.js";
-import axios from "axios";
 import { z } from "zod";
 
-import { BookInfo, OpenLibrarySearchResponse } from "./types.js";
+import { parseArgs, toErrorResult } from "../../utils/errors.js";
+import { jsonResult, textResult } from "../../utils/results.js";
+import {
+  OpenLibrarySearchResponse,
+  SEARCH_FIELDS,
+  searchLimitSchema,
+  searchOffsetSchema,
+  toSearchResults,
+} from "../../utils/search.js";
+import { READ_ONLY_LOOKUP, ToolDefinition, ToolHandler } from "../types.js";
 
-// Schema for the get_book_by_title tool arguments
 export const GetBookByTitleArgsSchema = z.object({
-  title: z.string().min(1, { message: "Title cannot be empty" }),
+  title: z
+    .string()
+    .min(1, { message: "Title cannot be empty" })
+    .describe("The title of the book to search for."),
+  limit: searchLimitSchema,
+  offset: searchOffsetSchema,
 });
 
-// Type for the Axios instance (can be imported or defined if needed elsewhere)
-type AxiosInstance = ReturnType<typeof axios.create>;
-
-const handleGetBookByTitle = async (
-  args: unknown,
-  axiosInstance: AxiosInstance,
-): Promise<CallToolResult> => {
-  const parseResult = GetBookByTitleArgsSchema.safeParse(args);
-
-  if (!parseResult.success) {
-    const errorMessages = parseResult.error.issues
-      .map((e) => `${e.path.join(".")}: ${e.message}`)
-      .join(", ");
-    throw new McpError(
-      ErrorCode.InvalidParams,
-      `Invalid arguments for get_book_by_title: ${errorMessages}`,
-    );
-  }
-
-  const bookTitle = parseResult.data.title;
+const handleGetBookByTitle: ToolHandler = async (args, clients) => {
+  const { title, limit, offset } = parseArgs(
+    GetBookByTitleArgsSchema,
+    args,
+    "get_book_by_title",
+  );
 
   try {
-    const response = await axiosInstance.get<OpenLibrarySearchResponse>(
+    const response = await clients.api.get<OpenLibrarySearchResponse>(
       "/search.json",
       {
-        params: { title: bookTitle },
+        params: { title, fields: SEARCH_FIELDS, limit, offset },
       },
     );
 
-    if (
-      !response.data ||
-      !response.data.docs ||
-      response.data.docs.length === 0
-    ) {
-      return {
-        content: [
-          {
-            type: "text",
-            text: `No books found matching title: "${bookTitle}"`,
-          },
-        ],
-      };
+    if (!response.data?.docs?.length) {
+      return textResult(`No books found matching title: "${title}"`);
     }
 
-    const bookResults = Array.isArray(response.data.docs)
-      ? response.data.docs.map((doc) => {
-          const bookInfo: BookInfo = {
-            title: doc.title,
-            authors: doc.author_name || [],
-            first_publish_year: doc.first_publish_year || null,
-            open_library_work_key: doc.key,
-            edition_count: doc.edition_count || 0,
-          };
-
-          if (doc.cover_i) {
-            bookInfo.cover_url = `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;
-          }
-
-          return bookInfo;
-        })
-      : [];
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(bookResults, null, 2),
-        },
-      ],
-    };
+    return jsonResult(toSearchResults(response.data, limit, offset));
   } catch (error) {
-    let errorMessage = "Failed to fetch book data from Open Library.";
-    if (axios.isAxiosError(error)) {
-      errorMessage = `Error processing request: ${
-        error.response?.statusText ?? error.message
-      }`;
-    } else if (error instanceof Error) {
-      errorMessage = `Error processing request: ${error.message}`;
-    }
-    console.error("Error in get_book_by_title:", error);
-
-    return {
-      content: [
-        {
-          type: "text",
-          text: errorMessage,
-        },
-      ],
-      isError: true,
-    };
+    return toErrorResult(error, "get_book_by_title");
   }
+};
+
+export const getBookByTitleTool: ToolDefinition = {
+  name: "get_book_by_title",
+  title: "Find books by title",
+  description:
+    'Search for a book by its title on Open Library. Returns at most `limit` results (default 10) together with `num_found`, the total number of matches; page through them with `offset`. Each result carries `best_edition` — one edition of the work, with its `isbn_13`/`isbn_10` where Open Library has them, and its `edition_key`, which can be passed to `get_book_by_id` as `{ idType: "olid" }` for that edition\'s full record.',
+  schema: GetBookByTitleArgsSchema,
+  annotations: READ_ONLY_LOOKUP,
+  handler: handleGetBookByTitle,
 };
 
 export { handleGetBookByTitle };
