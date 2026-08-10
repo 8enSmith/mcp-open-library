@@ -7,7 +7,7 @@ exports[`OpenLibraryServer > ListTools > matches the published tool schemas 1`] 
       "openWorldHint": true,
       "readOnlyHint": true,
     },
-    "description": "Search Open Library across titles, authors, subjects, places, people, publishers and ISBNs. Provide at least one search criterion: q, title, author, subject, place, person, publisher, isbn; combining several narrows the search. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`.",
+    "description": "Search Open Library across titles, authors, subjects, places, people, publishers and ISBNs. Provide at least one search criterion: q, title, author, subject, place, person, publisher, isbn; combining several narrows the search. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`. Each result carries \`best_edition\` — one edition of the work, with its \`isbn_13\`/\`isbn_10\` where Open Library has them, and its \`edition_key\`, which can be passed to \`get_book_by_id\` as \`{ idType: "olid" }\` for that edition's full record.",
     "inputSchema": {
       "properties": {
         "author": {
@@ -97,7 +97,7 @@ exports[`OpenLibraryServer > ListTools > matches the published tool schemas 1`] 
       "openWorldHint": true,
       "readOnlyHint": true,
     },
-    "description": "Search for a book by its title on Open Library. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`.",
+    "description": "Search for a book by its title on Open Library. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`. Each result carries \`best_edition\` — one edition of the work, with its \`isbn_13\`/\`isbn_10\` where Open Library has them, and its \`edition_key\`, which can be passed to \`get_book_by_id\` as \`{ idType: "olid" }\` for that edition's full record.",
     "inputSchema": {
       "properties": {
         "limit": {

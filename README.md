@@ -106,24 +106,37 @@ This server implements the Model Context Protocol, which means it can be used by
 
 ```json
 {
-  "num_found": 87,
+  "num_found": 51,
   "offset": 0,
   "limit": 2,
   "results": [
     {
       "title": "A Wizard of Earthsea",
       "authors": ["Ursula K. Le Guin"],
-      "author_keys": ["OL26783A"],
       "first_publish_year": 1968,
-      "open_library_work_key": "/works/OL102749W",
-      "edition_count": 89,
-      "cover_url": "https://covers.openlibrary.org/b/id/8188953-M.jpg",
-      "ratings_average": 4.11,
+      "open_library_work_key": "/works/OL59798W",
+      "edition_count": 87,
+      "author_keys": ["OL31353A"],
+      "best_edition": {
+        "edition_key": "OL5613890M"
+      },
+      "cover_url": "https://covers.openlibrary.org/b/id/13617691-M.jpg",
+      "ratings_average": 3.95,
       "ebook_access": "borrowable"
     }
   ]
 }
 ```
+
+`best_edition` is one specific edition of the work — the one Open Library ranks best for your query — carrying that edition's own identifiers. Search results otherwise identify a **work** (`open_library_work_key`), which no tool accepts, so this is the route from a search hit to a concrete book.
+
+Its `edition_key` is an OLID you can pass straight to `get_book_by_id` for the full edition record, including its complete ISBN arrays:
+
+```json
+{ "idType": "olid", "idValue": "OL5613890M" }
+```
+
+The `isbn_13` / `isbn_10` fields are omitted where Open Library holds no ISBN for that edition — as in the example above, and roughly a third of results — while `edition_key` is essentially always present. Where an edition lists several ISBNs of one kind, the first is reported; `get_book_by_id` returns them all.
 
 The `search_books` tool accepts the following parameters:
 
@@ -146,21 +159,24 @@ The `search_books` tool accepts the following parameters:
 
 ```json
 {
-  "num_found": 1247,
+  "num_found": 224,
   "offset": 0,
   "limit": 1,
   "results": [
     {
       "title": "The Hobbit",
-      "authors": [
-        "J. R. R. Tolkien"
-      ],
-      "author_keys": ["OL26320A"],
+      "authors": ["J.R.R. Tolkien"],
       "first_publish_year": 1937,
-      "open_library_work_key": "/works/OL45883W",
-      "edition_count": 120,
-      "cover_url": "https://covers.openlibrary.org/b/id/10581294-M.jpg",
-      "ratings_average": 4.24,
+      "open_library_work_key": "/works/OL27482W",
+      "edition_count": 481,
+      "author_keys": ["OL26320A"],
+      "best_edition": {
+        "edition_key": "OL51709286M",
+        "isbn_13": "9780395520215",
+        "isbn_10": "0395520215"
+      },
+      "cover_url": "https://covers.openlibrary.org/b/id/14627509-M.jpg",
+      "ratings_average": 4.29,
       "ebook_access": "borrowable"
     }
   ]

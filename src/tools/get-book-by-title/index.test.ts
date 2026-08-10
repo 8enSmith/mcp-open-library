@@ -41,6 +41,15 @@ describe("handleGetBookByTitle", () => {
             cover_i: 12345,
             ratings_average: 3.957627118644068,
             ebook_access: "borrowable",
+            editions: {
+              numFound: 3,
+              docs: [
+                {
+                  key: "/books/OL7500941M",
+                  isbn: ["9780425038918", "0425038912"],
+                },
+              ],
+            },
           },
         ],
       },
@@ -69,6 +78,11 @@ describe("handleGetBookByTitle", () => {
           first_publish_year: 2020,
           open_library_work_key: "/works/test123",
           edition_count: 5,
+          best_edition: {
+            edition_key: "OL7500941M",
+            isbn_13: "9780425038918",
+            isbn_10: "0425038912",
+          },
           cover_url: "https://covers.openlibrary.org/b/id/12345-M.jpg",
           ratings_average: 3.96,
           ebook_access: "borrowable",

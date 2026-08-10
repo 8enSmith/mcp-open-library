@@ -20,7 +20,17 @@ describe("SEARCH_FIELDS", () => {
       "cover_i",
       "ratings_average",
       "ebook_access",
+      "editions",
+      "editions.key",
+      "editions.isbn",
     ]);
+  });
+
+  // The top-level `isbn` field returns every edition's ISBN — 6,113 of them for
+  // Pride and Prejudice, taking a 10-result page from ~2.7KB to ~97KB. ISBNs
+  // must come from the bounded `editions` sub-query instead.
+  it("does not request the work-level isbn field", () => {
+    expect(SEARCH_FIELDS.split(",")).not.toContain("isbn");
   });
 });
 
@@ -37,6 +47,15 @@ describe("toBookInfo", () => {
         cover_i: 12345,
         ratings_average: 4.216666666,
         ebook_access: "borrowable",
+        editions: {
+          numFound: 141,
+          docs: [
+            {
+              key: "/books/OL7500941M",
+              isbn: ["9780425038918", "0425038912"],
+            },
+          ],
+        },
       }),
     ).toEqual({
       title: "Dune",
@@ -45,6 +64,11 @@ describe("toBookInfo", () => {
       first_publish_year: 1965,
       open_library_work_key: "/works/OL893415W",
       edition_count: 481,
+      best_edition: {
+        edition_key: "OL7500941M",
+        isbn_13: "9780425038918",
+        isbn_10: "0425038912",
+      },
       cover_url: "https://covers.openlibrary.org/b/id/12345-M.jpg",
       ratings_average: 4.22,
       ebook_access: "borrowable",
@@ -75,6 +99,101 @@ describe("toBookInfo", () => {
     expect(
       toBookInfo({ title: "X", key: "/works/x", ratings_average: 0 }),
     ).toHaveProperty("ratings_average", 0);
+  });
+});
+
+describe("toBookInfo best_edition", () => {
+  const withEdition = (edition: { key?: string; isbn?: string[] }) =>
+    toBookInfo({
+      title: "X",
+      key: "/works/x",
+      editions: { docs: [edition] },
+    }).best_edition;
+
+  it("strips the /books/ prefix so the key works as an olid", () => {
+    expect(withEdition({ key: "/books/OL7500941M" })?.edition_key).toBe(
+      "OL7500941M",
+    );
+  });
+
+  it("leaves a bare key untouched", () => {
+    expect(withEdition({ key: "OL7500941M" })?.edition_key).toBe("OL7500941M");
+  });
+
+  it("splits the mixed isbn array by length", () => {
+    expect(withEdition({ isbn: ["0425038912", "9780425038918"] })).toEqual({
+      isbn_13: "9780425038918",
+      isbn_10: "0425038912",
+    });
+  });
+
+  it("handles an edition with only an ISBN-13", () => {
+    expect(withEdition({ isbn: ["9780425038918"] })).toEqual({
+      isbn_13: "9780425038918",
+    });
+  });
+
+  it("handles an edition with only an ISBN-10", () => {
+    expect(withEdition({ isbn: ["0425038912"] })).toEqual({
+      isbn_10: "0425038912",
+    });
+  });
+
+  it("keeps an ISBN-10 ending in a check character", () => {
+    expect(withEdition({ isbn: ["054792822X"] })).toEqual({
+      isbn_10: "054792822X",
+    });
+  });
+
+  // Open Library returns these formats from the same field, and a hyphenated
+  // ISBN-10 is also 13 characters, so separators have to go before the length
+  // test can be trusted.
+  it("normalises separators before classifying", () => {
+    expect(withEdition({ isbn: ["978-84-667-4056-8"] })).toEqual({
+      isbn_13: "9788466740568",
+    });
+    expect(withEdition({ isbn: ["9 780198 319207"] })).toEqual({
+      isbn_13: "9780198319207",
+    });
+    expect(withEdition({ isbn: ["0-441-01359-7"] })).toEqual({
+      isbn_10: "0441013597",
+    });
+  });
+
+  it("ignores values that are not a valid ISBN length", () => {
+    expect(withEdition({ isbn: ["671465759", "97893403311"] })).toBeUndefined();
+  });
+
+  it("takes the first of each kind when an edition lists several", () => {
+    expect(
+      withEdition({
+        isbn: ["9780425038918", "9781444738209", "0425038912", "1444738208"],
+      }),
+    ).toEqual({ isbn_13: "9780425038918", isbn_10: "0425038912" });
+  });
+
+  // 32% of sampled results have an edition with no ISBN; the key alone is still
+  // worth returning, since get_book_by_id resolves it.
+  it("returns the key alone when the edition has no ISBNs", () => {
+    expect(withEdition({ key: "/books/OL1M", isbn: [] })).toEqual({
+      edition_key: "OL1M",
+    });
+  });
+
+  it("is omitted when the edition carries nothing usable", () => {
+    expect(withEdition({})).toBeUndefined();
+  });
+
+  it("is omitted when there is no editions block at all", () => {
+    expect(toBookInfo({ title: "X", key: "/works/x" })).not.toHaveProperty(
+      "best_edition",
+    );
+  });
+
+  it("is omitted when the editions block has no docs", () => {
+    expect(
+      toBookInfo({ title: "X", key: "/works/x", editions: { numFound: 0 } }),
+    ).not.toHaveProperty("best_edition");
   });
 });
 

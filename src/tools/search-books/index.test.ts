@@ -120,6 +120,39 @@ describe("handleSearchBooks", () => {
     });
   });
 
+  it("should surface the best edition's identifiers", async () => {
+    get.mockResolvedValue({
+      data: {
+        numFound: 1,
+        docs: [
+          {
+            title: "Dune",
+            key: "/works/OL893415W",
+            editions: {
+              numFound: 141,
+              docs: [
+                {
+                  key: "/books/OL7500941M",
+                  isbn: ["9780425038918", "0425038912"],
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const result = await handleSearchBooks({ title: "dune" }, clients);
+
+    // edition_key is deliberately prefix-free so it can be handed straight to
+    // get_book_by_id as an olid.
+    expect(parsePayload(result).results[0].best_edition).toEqual({
+      edition_key: "OL7500941M",
+      isbn_13: "9780425038918",
+      isbn_10: "0425038912",
+    });
+  });
+
   it("should reject a request with no search criteria", async () => {
     await expect(handleSearchBooks({ limit: 5 }, clients)).rejects.toThrow(
       InvalidArgumentsError,

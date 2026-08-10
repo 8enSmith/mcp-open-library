@@ -63,6 +63,14 @@ Handlers may still `throw` — `parseArgs` throws `InvalidArgumentsError` on bad
 
 Use the helpers rather than hand-rolling results: `textResult` for an ordinary empty/negative result (no `isError` — "no books found" is a valid answer), `errorTextResult` for a tool-specific failure message (a 404 for a named key), and `toErrorResult(error, toolName)` inside a handler's `catch` for anything thrown by axios. `toErrorResult` logs and produces `Open Library API error: <status> <reason>`; all failure results set `isError: true`.
 
+### The search projection
+
+`src/utils/search.ts` holds the one projection both `search_books` and `get_book_by_title` use — `SEARCH_FIELDS` (the `fields=` list) and `toBookInfo`. Change it and both tools change together.
+
+**ISBNs come from the nested `editions` sub-query (`editions`, `editions.key`, `editions.isbn`), never the top-level `isbn` field.** This is the trap here, because `fields=isbn` looks like the obvious answer. It returns *every* edition's ISBN for the work — 6,113 for Pride and Prejudice — taking a 10-result page from ~2.7KB to ~97KB, and the resulting list is incoherent: unrelated printings in different languages, none of which is "the" ISBN. The `editions` block instead returns a single edition with its own identifiers, bounded regardless of how many editions exist, and tracks the query (search by ISBN and you get back the edition that matched). `src/utils/search.test.ts` asserts `SEARCH_FIELDS` does not contain `isbn`.
+
+Open Library does not format ISBNs consistently within that field — `9780425038918`, `978-84-667-4056-8` and `9 780198 319207` all occur. `normaliseIsbn` strips separators before the length test, because a hyphenated ISBN-10 is also 13 characters and would otherwise be misfiled as an ISBN-13.
+
 ### Tool metadata
 
 `ToolDefinition` carries a required `title` (human-readable display name) and optional `annotations`. All seven tools use the shared `READ_ONLY_LOOKUP` constant (`readOnlyHint: true, openWorldHint: true`) from `src/tools/types.ts`, which lets clients auto-approve them. `destructiveHint` and `idempotentHint` are only meaningful when `readOnlyHint` is false, so they are deliberately omitted.
