@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.1] - 2026-08-11
 ### Fixed
 - The server no longer advertises the `resources` capability it never implemented. Clients took the declaration at face value and called `resources/list`, `resources/templates/list` and `resources/read`, each of which returned a JSON-RPC `-32601 Method not found` because no handler was ever registered for them — the MCP Inspector showed a Resources tab and two failed requests on every connect. All three methods sit behind that single capability flag, so removing it stops clients asking
 
