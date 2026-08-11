@@ -42,8 +42,8 @@
     "test:precommit": "vitest run"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.25.3",
-    "axios": "^1.10.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "axios": "^1.12.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
