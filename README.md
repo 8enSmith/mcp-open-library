@@ -501,4 +501,4 @@ Contributions are welcome! Please feel free to submit a pull request.
 ## Acknowledgments
 
 - [Open Library API](https://openlibrary.org/developers/api)
-- [Model Context Protocol](https://github.com/modelcontextprotocol/mcp)
+- [Model Context Protocol](https://github.com/modelcontextprotocol)
