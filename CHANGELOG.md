@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Security
-- Updated `axios` to `^1.19.0` and `@modelcontextprotocol/sdk` to `^1.30.0`, and regenerated `package-lock.json` from scratch. The lockfile pinned the floor of each range, so transitive dependencies stayed on versions their own semver ranges had long since allowed patches for — `hono`, `fast-uri`, `ajv`, `follow-redirects`, `form-data` and the Vite/Vitest and ESLint toolchains. `axios@1.12.0` alone carried three critical advisories, the highest of which needed `1.15.2`. A Snyk scan of the production and development trees now reports no issues at any severity, down from 108
+- Updated `axios` to `^1.19.0` and `@modelcontextprotocol/sdk` to `^1.30.0`, and regenerated `package-lock.json` from scratch. The lockfile still held the versions resolved when each dependency was last installed, so transitive dependencies stayed on releases their own semver ranges had long since allowed patches for — `hono`, `fast-uri`, `ajv`, `follow-redirects`, `form-data` and the Vite/Vitest and ESLint toolchains. `axios@1.12.0` alone carried three critical advisories, the highest of which needed `1.15.2`. A Snyk scan of the production and development trees now reports no issues at any severity, down from 108
 
 ## [1.1.1] - 2026-08-11
 ### Fixed
