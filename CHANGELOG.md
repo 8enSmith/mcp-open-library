@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Security
+- Updated `axios` to `^1.19.0` and `@modelcontextprotocol/sdk` to `^1.30.0`, and regenerated `package-lock.json` from scratch. The lockfile pinned the floor of each range, so transitive dependencies stayed on versions their own semver ranges had long since allowed patches for — `hono`, `fast-uri`, `ajv`, `follow-redirects`, `form-data` and the Vite/Vitest and ESLint toolchains. `axios@1.12.0` alone carried three critical advisories, the highest of which needed `1.15.2`. A Snyk scan of the production and development trees now reports no issues at any severity, down from 108
+
 ## [1.1.1] - 2026-08-11
 ### Fixed
 - The server no longer advertises the `resources` capability it never implemented. Clients took the declaration at face value and called `resources/list`, `resources/templates/list` and `resources/read`, each of which returned a JSON-RPC `-32601 Method not found` because no handler was ever registered for them — the MCP Inspector showed a Resources tab and two failed requests on every connect. All three methods sit behind that single capability flag, so removing it stops clients asking
