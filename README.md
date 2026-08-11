@@ -3,7 +3,6 @@
 [![MCP Registry](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fregistry.modelcontextprotocol.io%2Fv0.1%2Fservers%3Fsearch%3Dio.github.8enSmith%2Fmcp-open-library&query=%24.servers%5B0%5D.server.version&label=MCP%20Registry&prefix=v&color=blue)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8enSmith/mcp-open-library)
 [![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/8enSmith/mcp-open-library)](https://archestra.ai/mcp-catalog/8ensmith__mcp-open-library)
 [![Listed on Spark](https://spark.entire.vc/badges/listed.svg)](https://spark.entire.vc/assets/vb-mcp-open-library?utm_source=github&utm_medium=readme)
-[![smithery badge](https://smithery.ai/badge/@8enSmith/mcp-open-library)](https://smithery.ai/server/@8enSmith/mcp-open-library)
 
 A Model Context Protocol (MCP) server for the Open Library API that enables AI assistants to search for book and author information.
 
