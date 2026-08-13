@@ -24,7 +24,7 @@
   },
   "type": "module",
   "bin": {
-    "open-library-server": "./build/index.js"
+    "mcp-open-library": "./build/index.js"
   },
   "files": [
     "build"

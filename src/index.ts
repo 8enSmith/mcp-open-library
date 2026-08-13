@@ -13,6 +13,7 @@ import {
 import { TOOLS, TOOLS_BY_NAME } from "./tools/registry.js";
 import { toToolError } from "./utils/errors.js";
 import { createOpenLibraryClients, OpenLibraryClients } from "./utils/http.js";
+import { isMainModule } from "./utils/main-module.js";
 import { toInputSchema } from "./utils/schema.js";
 
 const pkg = JSON.parse(
@@ -26,7 +27,7 @@ class OpenLibraryServer {
   constructor() {
     this.server = new Server(
       {
-        name: "open-library-server",
+        name: "mcp-open-library",
         version: pkg.version,
       },
       {
@@ -90,7 +91,7 @@ class OpenLibraryServer {
   }
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+if (isMainModule(import.meta.url)) {
   const server = new OpenLibraryServer();
   server.run().catch(console.error);
 }

@@ -95,7 +95,7 @@ describe("OpenLibraryServer", () => {
     const [implementation] = (Server as any).mock.calls[0];
 
     expect(implementation.version).toBe(pkg.version);
-    expect(implementation.name).toBe("open-library-server");
+    expect(implementation.name).toBe("mcp-open-library");
   });
 
   describe("ListTools", () => {

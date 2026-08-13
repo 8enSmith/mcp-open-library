@@ -31,6 +31,25 @@ Every tool is a read-only lookup and advertises itself as such with the `readOnl
 
 ## Installation
 
+### Quick Start
+
+Nothing to install or build. Point an MCP client at the package with `npx` and it
+will be fetched on first run:
+
+```json
+{
+  "mcpServers": {
+    "mcp-open-library": {
+      "command": "npx",
+      "args": ["-y", "mcp-open-library"]
+    }
+  }
+}
+```
+
+In Claude Desktop that goes in `claude_desktop_config.json`; other clients use the
+same shape. Restart the client and the seven tools below become available.
+
 ### MCP Registry
 
 This server publishes to the official MCP Registry as
