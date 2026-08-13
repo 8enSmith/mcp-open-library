@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.3] - 2026-08-13
 ### Security
 - Transitive dependencies are now pinned to their [Socket registry](https://socket.dev/) drop-in replacements through `overrides` in `package.json`, with a matching `resolutions` block for Yarn and pnpm. 68 packages are declared, and the regenerated lockfile resolves 18 of them to `@socketregistry/*` — the other 50 are no longer in the tree at all. That is the substance of the change rather than a shortfall in it: the replacements are zero-dependency reimplementations, so the ES-shim micro-packages that existed only to satisfy one another fell out along with them, `es-abstract`, `call-bind`, `gopd`, `is-typed-array` and `which-typed-array` among them. Installed packages drop from 460 to 375 — the production tree from 108 to 92, the development tree from 352 to 283. Six replacements sit in the production tree (`es-define-property`, `es-set-tostringtag`, `hasown`, `object-assign`, `safer-buffer`, `side-channel`); the other twelve are dev-only, reached through the ESLint toolchain. The gain is that 85 fewer packages means 85 fewer maintainer accounts and publish pipelines able to reach an install, which is the surface a typosquat or a hijacked account actually travels through. Nothing changes at runtime, and nothing changes for anything installing this package — npm applies `overrides` only from the root project, never from a dependency's manifest
 
