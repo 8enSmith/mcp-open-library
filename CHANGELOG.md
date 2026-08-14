@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.1] - 2026-08-14
 ### Added
 - `glama.json`, claiming maintainership of this server's [Glama](https://glama.ai) listing. Glama does not build the `Dockerfile` committed here: it builds one generated from a build spec — base image, Node version, build steps and `CMD` arguments — held in its admin page, and a Dockerfile is [either "authored by the maintainer and checked into the repository, or inferred by Glama's AI-assisted build system"](https://glama.ai/mcp/methodology). This listing is on the inferred path, and the two have drifted apart: the generated file uses `debian:bookworm-slim` and `mcp-proxy@6.4.3` against the committed file's `debian:bullseye-slim` and `mcp-proxy@2.10.6`, so editing the committed `Dockerfile` does not change what Glama builds. Claiming maintainership is what grants access to the spec that does, and to the button that re-runs a build — which is the whole remedy when a build fails for reasons outside the repository, as the last one did when Glama's builder timed out resolving its base image from Docker Hub before reaching any of this code. The [schema](https://glama.ai/mcp/schemas/server.json) defines a single required property, `maintainers`; no part of the build spec is expressible in the file itself
 
