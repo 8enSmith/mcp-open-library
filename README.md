@@ -62,14 +62,6 @@ To inspect the published listing:
 curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8enSmith/mcp-open-library"
 ```
 
-### Installing via Smithery
-
-To install MCP Open Library for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@8enSmith/mcp-open-library):
-
-```bash
-npx -y @smithery/cli install @8enSmith/mcp-open-library --client claude
-```
-
 ### Manual Installation
 
 ```bash
