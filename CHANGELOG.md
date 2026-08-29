@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.2] - 2026-08-29
 ### Removed
 - The "Installing via Smithery" section of the README. The command it documented, `npx -y @smithery/cli install @8enSmith/mcp-open-library --client claude`, no longer works: `install` is deprecated in favour of `smithery mcp add`, and the deprecated path exits 1 after printing `fetch failed` to stderr. It had also broken this server's [mcp.so](https://mcp.so/servers/mcp-open-library) listing, whose "Fetch tools" button runs the stored launch command in a temporary sandbox and attaches an MCP stdio client to it. mcp.so had scraped that Smithery line as the launch command rather than the `{"command": "npx", "args": ["-y", "mcp-open-library"]}` config the Installation section leads with, so the button spawned an interactive installer that never speaks JSON-RPC: it wrote a TTY consent prompt to stdout, echoed the client's `initialize` frame back as keystrokes, failed its registry fetch and exited, which the client reported as `MCP error -32000: Connection closed (fetch failed)`. Removing the section leaves a single install command in the README for a scraper to find. `smithery.yaml` is untouched — it invokes `node build/index.js` directly and does not go through the CLI
 
