@@ -4,6 +4,7 @@
 [![Socket Badge](https://badge.socket.dev/npm/package/mcp-open-library)](https://socket.dev/npm/package/mcp-open-library)
 [![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/8enSmith/mcp-open-library)](https://archestra.ai/mcp-catalog/8ensmith__mcp-open-library)
 [![Listed on Spark](https://spark.entire.vc/badges/listed.svg)](https://spark.entire.vc/assets/vb-mcp-open-library?utm_source=github&utm_medium=readme)
+[![NPM](https://nodei.co/npm/mcp-open-library.png?mini=true)](https://npmjs.org/package/mcp-open-library)
 
 A Model Context Protocol (MCP) server for the Open Library API that enables AI assistants to search for book and author information.
 
