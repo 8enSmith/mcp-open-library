@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.3] - 2026-10-20
 ### Added
 - `CONTRIBUTING.md`, a guide for anyone sending a change. It covers when to open an issue before a pull request, what a useful bug report includes, and how to report a security vulnerability privately rather than in a public issue. It also walks through development setup, including the pre-commit hook, and the conventions for code, tests and changelog entries. Finally, it lists what a pull request should pass before it is opened. Contributors are asked not to touch `package.json`'s `version`, `server.json` or `npm version`, because releases are cut by the maintainer
 
