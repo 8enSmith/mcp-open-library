@@ -82,13 +82,13 @@ jobs:
       - name: Wait for npm to serve the new version
         run: |
           VERSION="$(node -p "require('./package.json').version")"
-          for attempt in $(seq 1 12); do
+          for attempt in $(seq 1 30); do
             if npm view "mcp-open-library@${VERSION}" version >/dev/null 2>&1; then
               echo "mcp-open-library@${VERSION} is visible on npm."
               exit 0
             fi
-            echo "Attempt ${attempt}/12: not visible yet, retrying in 5s..."
-            sleep 5
+            echo "Attempt ${attempt}/30: not visible yet, retrying in 10s..."
+            sleep 10
           done
           echo "Timed out waiting for mcp-open-library@${VERSION} to appear on npm." >&2
           exit 1

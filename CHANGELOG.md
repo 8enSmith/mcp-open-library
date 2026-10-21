@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Changed
+- The publish workflow now waits up to 5 minutes, rather than 60 seconds, for npm to serve a newly published version before registering it with the MCP Registry. The 1.2.3 release outlasted the old budget: npm accepted the package, warned that it "may take a few minutes to become available", and was still not serving it when the wait gave up, so the workflow failed after the npm publish. The MCP Registry entry and the GitHub Release, which both run after that check, were skipped until the job was re-run. The check now polls 30 times at 10-second intervals
+
 ## [1.2.3] - 2026-10-20
 ### Added
 - `CONTRIBUTING.md`, a guide for anyone sending a change. It covers when to open an issue before a pull request, what a useful bug report includes, and how to report a security vulnerability privately rather than in a public issue. It also walks through development setup, including the pre-commit hook, and the conventions for code, tests and changelog entries. Finally, it lists what a pull request should pass before it is opened. Contributors are asked not to touch `package.json`'s `version`, `server.json` or `npm version`, because releases are cut by the maintainer
