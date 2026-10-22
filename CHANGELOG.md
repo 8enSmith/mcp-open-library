@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Security
+- Updated `@modelcontextprotocol/sdk` from `^1.30.0` to `^1.32.0`, which fixes two high-severity advisories. [CVE-2026-111767](https://github.com/advisories/GHSA-22jm-h49p-29qw) (missing authorization, 1.24.0 up to 1.32.0) let one session read, modify or collect the results of tasks created by another session, through the SDK's `InMemoryTaskStore` on a shared HTTP server. [CVE-2026-111769](https://github.com/advisories/GHSA-6prh-2h8m-c8cw) (open redirect, below 1.32.0) made the SDK's HTTP client follow redirects to a different origin, so a malicious server could have OAuth credentials and tokens sent to a host it controlled. Neither was reachable from this server. It runs only over `StdioServerTransport`, never passes a `taskStore` to `Server`, and does not use the SDK's client, OAuth or HTTP transports. The update clears the Snyk findings against the dependency tree. The SDK's own dependency ranges did not change between the two versions, so nothing else in the lockfile moved. The regenerated lockfile also records the root `bin` as `mcp-open-library`. `package.json` was renamed in 1.2.0, but the lockfile was never updated and still listed `open-library-server`. That field has no effect on installs
+
 ## [1.2.4] - 2026-10-21
 ### Changed
 - The publish workflow now waits up to 5 minutes, rather than 60 seconds, for npm to serve a newly published version before registering it with the MCP Registry. The 1.2.3 release outlasted the old budget: npm accepted the package, warned that it "may take a few minutes to become available", and was still not serving it when the wait gave up, so the workflow failed after the npm publish. The MCP Registry entry and the GitHub Release, which both run after that check, were skipped until the job was re-run. The check now polls 30 times at 10-second intervals
