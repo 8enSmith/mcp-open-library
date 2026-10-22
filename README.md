@@ -3,6 +3,7 @@
 [![MCP Registry](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fregistry.modelcontextprotocol.io%2Fv0.1%2Fservers%3Fsearch%3Dio.github.8enSmith%2Fmcp-open-library%26version%3Dlatest&query=%24.servers%5B0%5D.server.version&label=MCP%20Registry&prefix=v&color=blue)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.8enSmith/mcp-open-library)
 [![Socket Badge](https://badge.socket.dev/npm/package/mcp-open-library)](https://socket.dev/npm/package/mcp-open-library)
 [![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/8enSmith/mcp-open-library)](https://archestra.ai/mcp-catalog/8ensmith__mcp-open-library)
+[![Listed on MCP ServerList](https://mcp-serverlist.com/api/badge/mcp-open-library)](https://mcp-serverlist.com/mcp/mcp-open-library)
 [![NPM](https://nodei.co/npm/mcp-open-library.png?mini=true)](https://npmjs.org/package/mcp-open-library)
 
 A Model Context Protocol (MCP) server for the Open Library API that enables AI assistants to search for book and author information.
@@ -80,7 +81,7 @@ npm run build
 
 ### Running the Server
 
-  1. Ensure you are running node v22.21.1 (it'll probably work on a newer version of node but this is what Im using for this test). If you have `nvm` installed run `nvm use`.
+  1. Ensure you are running node v22.23.4 (it'll probably work on a newer version of node but this is what Im using for this test). If you have `nvm` installed run `nvm use`.
   2. In the `mcp-open-library` root directory run `npm run build`
   3. Next run `npm run inspector`. Once built, click the URL with the `MCP_PROXY_AUTH_TOKEN` query string parameter to open the Inspector.
   4. In the Inspector, choose 'STDIO' transport

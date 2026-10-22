@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-nvm use                  # Node is pinned in .nvmrc (v22.21.1)
+nvm use                  # Node is pinned in .nvmrc (v22.23.4)
 npm run build            # tsc -> build/, then chmod +x build/index.js
 npm run watch            # tsc --watch
 npm test                 # vitest in watch mode
