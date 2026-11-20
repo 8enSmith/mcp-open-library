@@ -51,6 +51,23 @@ will be fetched on first run:
 In Claude Desktop that goes in `claude_desktop_config.json`; other clients use the
 same shape. Restart the client and the seven tools below become available.
 
+### One-Click Install
+
+[![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=mcp-open-library&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC1vcGVuLWxpYnJhcnkiXX0%3D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=mcp-open-library&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-open-library%22%5D%7D)
+[![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_Server-24bfa5?logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=mcp-open-library&config=%7B%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-open-library%22%5D%7D&quality=insiders)
+
+Each button opens the editor's own install prompt with the `npx` config above already filled in.
+
+### Claude Code
+
+```bash
+claude mcp add --scope user mcp-open-library -- npx -y mcp-open-library
+```
+
+`--scope user` makes the tools available in every project. Leave it off to add the
+server to the current project only.
+
 ### MCP Registry
 
 This server publishes to the official MCP Registry as
