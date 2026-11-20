@@ -26,7 +26,9 @@ vi.mock("@modelcontextprotocol/sdk/server/index.js", () => {
     onerror: vi.fn(),
   };
   return {
-    Server: vi.fn(() => mockServer),
+    Server: vi.fn(function () {
+      return mockServer;
+    }),
   };
 });
 
