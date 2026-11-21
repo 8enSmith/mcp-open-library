@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-11-21
 ### Added
 - `get_work`, which returns the full record for an Open Library work — the book as a whole, across all its editions: description, subjects, subject places, people and times, first publication date, cover, excerpts, external links, and authors with their names. Until now `search_books`, `get_book_by_title` and `get_book_by_id` returned an `open_library_work_key` that no tool accepted. Author names come from one extra search request; if that request fails, the authors are still returned by key rather than the tool failing. No edition count is reported, because the search index's count can disagree with the editions endpoint; `get_work_editions`' `num_found` is the authoritative total
 - `get_work_editions`, which lists a work's editions — its specific printings — each with its `edition_key`, title, edition name, publishers, publish date, languages (as the 3-letter MARC codes `search_books`' `language` takes), first ISBN-13 and ISBN-10 with separators removed, page count, format and cover. It returns at most `limit` editions (default 20, maximum 100) with `num_found`, the total, and pages with `offset`. A page of 50 raw edition records is ~37KB, mostly source records, local IDs and revision stamps; the trimmed page is ~13KB. Editions come in Open Library's order, not by date, and the endpoint offers no filter. Each `edition_key` can be passed to `get_book_by_id` as `{ "idType": "olid" }` for that edition's full record
