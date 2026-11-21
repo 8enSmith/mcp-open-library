@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { axiosErrorWithStatus } from "../test-support/axios-error.js";
 import { fakeClients } from "../test-support/fake-clients.js";
 
-import { fetchWork, firstCoverUrl, toBareKey, workKeySchema } from "./works.js";
+import {
+  fetchWork,
+  firstCoverUrl,
+  toBareKey,
+  withoutEmpty,
+  workKeySchema,
+} from "./works.js";
 
 const work = (key: string, extra = {}) => ({
   key: `/works/${key}`,
@@ -57,6 +63,20 @@ describe("firstCoverUrl", () => {
     [undefined, undefined],
   ])("maps %j to %s", (covers, url) => {
     expect(firstCoverUrl(covers)).toBe(url);
+  });
+});
+
+describe("withoutEmpty", () => {
+  it("drops undefined values and empty arrays, keeping everything else", () => {
+    expect(
+      withoutEmpty({
+        title: "Kept",
+        subtitle: undefined,
+        subjects: [],
+        languages: ["eng"],
+        number_of_pages: 0,
+      }),
+    ).toEqual({ title: "Kept", languages: ["eng"], number_of_pages: 0 });
   });
 });
 

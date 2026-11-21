@@ -44,6 +44,15 @@ export function toBareKey(key: string): string {
   return key.slice(key.lastIndexOf("/") + 1);
 }
 
+export function withoutEmpty<T extends object>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      ([, entry]) =>
+        entry !== undefined && !(Array.isArray(entry) && entry.length === 0),
+    ),
+  ) as T;
+}
+
 export function firstCoverUrl(
   covers: number[] | undefined,
 ): string | undefined {
