@@ -111,7 +111,7 @@ const ISBN_10_LENGTH = 10;
  * the separators is what makes the length test trustworthy (a hyphenated
  * ISBN-10 is also 13 characters) and yields a value usable as an identifier.
  */
-function normaliseIsbn(value: string): string {
+export function normaliseIsbn(value: string): string {
   return value.replace(/[^0-9Xx]/g, "").toUpperCase();
 }
 
