@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- One-click install buttons for Cursor, VS Code and VS Code Insiders in the README, and a `claude mcp add` command for Claude Code. Each button goes through the editor's HTTPS redirect (`cursor.com/install-mcp`, `vscode.dev/redirect/mcp/install`) rather than linking to the `cursor://` or `vscode:` scheme directly, because GitHub strips links with custom schemes from rendered Markdown. All of them run the same `npx -y mcp-open-library` command as the `{"command": "npx", "args": ["-y", "mcp-open-library"]}` config the Quick Start shows, with the VS Code links also setting `"type": "stdio"`, and that JSON block stays the first launch command in the Installation section so scrapers such as mcp.so keep picking it up
+
 ### Changed
 - Updated `vitest` from `^3.1.1` to `^5.1.1`, and `@types/node` from `^20.11.24` to `^22.20.5` to go with it. vitest 5 declares `@types/node` as an optional peer dependency with the range `^22.0.0 || >=24.0.0`, and npm enforces an optional peer's range whenever that package is installed, so the vitest update alone made `npm ci` fail with `ERESOLVE`. The Node 22 types also match the runtime: `.nvmrc` pins `v22.23.4`, and both CI workflows install from it, so the build had been type-checking against Node 20's APIs while running on Node 22. `tinypool` drops out of the tree, because vitest 5 no longer uses it. The `Server` mock in `src/index.test.ts` is now a `function` expression rather than an arrow function. Since vitest 4, a mock called with `new` calls its implementation with `new`, and an arrow function cannot be constructed, so every test in that file failed with `mockServer is not a constructor`. Both packages are development dependencies, so nothing in the published package changes
 
