@@ -7,7 +7,7 @@ exports[`OpenLibraryServer > ListTools > matches the published tool schemas 1`] 
       "openWorldHint": true,
       "readOnlyHint": true,
     },
-    "description": "Search Open Library across titles, authors, subjects, places, people, publishers and ISBNs. Provide at least one search criterion: q, title, author, subject, place, person, publisher, isbn; combining several narrows the search. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`. Each result carries \`best_edition\` — one edition of the work, with its \`isbn_13\`/\`isbn_10\` where Open Library has them, and its \`edition_key\`, which can be passed to \`get_book_by_id\` as \`{ idType: "olid" }\` for that edition's full record.",
+    "description": "Search Open Library across titles, authors, subjects, places, people, publishers and ISBNs. Provide at least one search criterion: q, title, author, subject, place, person, publisher, isbn; combining several narrows the search. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`. Each result carries \`best_edition\` — one edition of the work, with its \`isbn_13\`/\`isbn_10\` where Open Library has them, and its \`edition_key\`, which can be passed to \`get_book_by_id\` as \`{ idType: "olid" }\` for that edition's full record. Each result's \`open_library_work_key\` can be passed to \`get_work\` for the work's description, subjects and authors, or to \`get_work_editions\` to list its editions.",
     "inputSchema": {
       "properties": {
         "author": {
@@ -96,7 +96,7 @@ exports[`OpenLibraryServer > ListTools > matches the published tool schemas 1`] 
       "openWorldHint": true,
       "readOnlyHint": true,
     },
-    "description": "Search for a book by its title on Open Library. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`. Each result carries \`best_edition\` — one edition of the work, with its \`isbn_13\`/\`isbn_10\` where Open Library has them, and its \`edition_key\`, which can be passed to \`get_book_by_id\` as \`{ idType: "olid" }\` for that edition's full record.",
+    "description": "Search for a book by its title on Open Library. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`. Each result carries \`best_edition\` — one edition of the work, with its \`isbn_13\`/\`isbn_10\` where Open Library has them, and its \`edition_key\`, which can be passed to \`get_book_by_id\` as \`{ idType: "olid" }\` for that edition's full record. Each result's \`open_library_work_key\` can be passed to \`get_work\` for the work's description, subjects and authors, or to \`get_work_editions\` to list its editions.",
     "inputSchema": {
       "properties": {
         "limit": {
@@ -159,6 +159,64 @@ exports[`OpenLibraryServer > ListTools > matches the published tool schemas 1`] 
     },
     "name": "get_book_by_id",
     "title": "Get book by identifier",
+  },
+  {
+    "annotations": {
+      "openWorldHint": true,
+      "readOnlyHint": true,
+    },
+    "description": "Get the full record for an Open Library work — the book as a whole, across all its editions: description, subjects, authors, first publication date, cover and external links. Takes the \`open_library_work_key\` returned by \`search_books\`, \`get_book_by_title\` or \`get_book_by_id\`. Use \`get_work_editions\` to list the work's editions.",
+    "inputSchema": {
+      "properties": {
+        "work_key": {
+          "description": "The Open Library work key, e.g. OL45804W. The /works/OL45804W form returned by search_books, get_book_by_title and get_book_by_id is also accepted.",
+          "pattern": "^(?:\\/works\\/)?OL\\d+W$",
+          "type": "string",
+        },
+      },
+      "required": [
+        "work_key",
+      ],
+      "type": "object",
+    },
+    "name": "get_work",
+    "title": "Get work details",
+  },
+  {
+    "annotations": {
+      "openWorldHint": true,
+      "readOnlyHint": true,
+    },
+    "description": "List the editions of an Open Library work — its specific printings, each with publisher, date, language, ISBNs, page count and format. Takes the \`open_library_work_key\` returned by \`search_books\`, \`get_book_by_title\` or \`get_book_by_id\`. Returns at most \`limit\` editions (default 20, maximum 100) with \`num_found\`, the total; page through them with \`offset\`. Editions are in Open Library's order, not by date, and cannot be filtered. Pass an edition's \`edition_key\` to \`get_book_by_id\` as \`{ idType: "olid" }\` for its full record.",
+    "inputSchema": {
+      "properties": {
+        "limit": {
+          "default": 20,
+          "description": "Maximum number of editions to return (1-100, default 20).",
+          "maximum": 100,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "offset": {
+          "default": 0,
+          "description": "Number of editions to skip, for paging through the total reported as num_found (default 0).",
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer",
+        },
+        "work_key": {
+          "description": "The Open Library work key, e.g. OL45804W. The /works/OL45804W form returned by search_books, get_book_by_title and get_book_by_id is also accepted.",
+          "pattern": "^(?:\\/works\\/)?OL\\d+W$",
+          "type": "string",
+        },
+      },
+      "required": [
+        "work_key",
+      ],
+      "type": "object",
+    },
+    "name": "get_work_editions",
+    "title": "List editions of a work",
   },
   {
     "annotations": {

@@ -38,7 +38,7 @@ An MCP stdio server wrapping the Open Library HTTP API. Three layers:
 
 **`src/tools/<tool-name>/`** — one directory per tool, each with `index.ts` (handler, zod arg schema, and the exported `ToolDefinition`), optional `types.ts` (Open Library API response shapes), and `index.test.ts`. `src/tools/registry.ts` collects the definitions into `TOOLS`; `src/tools/index.ts` re-exports everything.
 
-**`src/utils/`** — `http.ts` (client factory; User-Agent and 15s timeout), `errors.ts` (`parseArgs`, `isNotFound`, `describeError`, `toErrorResult`), `results.ts` (`textResult`, `errorTextResult`, `jsonResult`), `schema.ts` (`toInputSchema`), `search.ts` (shared `/search.json` projection and paging schemas), `covers.ts` (cover existence check). `src/test-support/` holds test-only helpers — currently `axiosErrorWithStatus`, the one place the shape of an axios failure is constructed.
+**`src/utils/`** — `http.ts` (client factory; User-Agent and 15s timeout), `errors.ts` (`parseArgs`, `isNotFound`, `describeError`, `toErrorResult`), `results.ts` (`textResult`, `errorTextResult`, `jsonResult`), `schema.ts` (`toInputSchema`), `search.ts` (shared `/search.json` projection and paging schemas), `covers.ts` (cover existence check), `works.ts` (work key schema, bare-key and cover helpers, redirect-aware `fetchWork`). `src/test-support/` holds test-only helpers — `axiosErrorWithStatus`, the one place the shape of an axios failure is constructed, and `fakeClients`/`jsonBody`, which fake the `api` client by URL (an unrouted URL answers 404) and parse a `jsonResult`.
 
 Every handler has the same signature: `(args: unknown, clients: OpenLibraryClients)`, where `clients` is `{ api, covers }` — `api` is based at `https://openlibrary.org`, `covers` at `https://covers.openlibrary.org`. The uniform signature is what lets `CallTool` dispatch generically.
 
@@ -83,9 +83,20 @@ The line between the first two is *searching* versus *naming*: a search that mat
 
 Open Library does not format ISBNs consistently within that field — `9780425038918`, `978-84-667-4056-8` and `9 780198 319207` all occur. `normaliseIsbn` strips separators before the length test, because a hyphenated ISBN-10 is also 13 characters and would otherwise be misfiled as an ISBN-13.
 
+### Works and redirects
+
+`get_work` and `get_work_editions` share `src/utils/works.ts`. Two things about Open Library's work records drive it:
+
+- **A merged work is not an HTTP redirect.** `/works/OL45883W.json` answers **200** with `type: { key: "/type/redirect" }` and a `location`, so axios never follows it. `fetchWork` detects a redirect **only on `type.key`, never on the presence of `location`** — the canonical `OL45804W` carries a stray `location` pointing back at `OL45883W`, so keying on `location` would loop. It follows at most one hop, and anything that is not `/type/work` after it is not found.
+- **`/works/{key}/editions.json` answers 404 for a redirected key**, so a 404 there does not mean the work is missing. `get_work_editions` falls back to `fetchWork` and retries once under the canonical key.
+
+`work_key` accepts both `OL45804W` and `/works/OL45804W` (the form the search tools emit). The optional prefix lives in the schema's regex rather than a transform, so the published `pattern` admits both; handlers strip it after `parseArgs`. Every key the two tools emit is bare and goes straight to the tool that takes it: an `edition_key` to `get_book_by_id` as an `olid`, an author `key` to `get_author_info`, and `work_key` back to `get_work` or `get_work_editions`.
+
+`get_work` takes author names from one `/search.json?q=key:/works/<key>` request and degrades to keys if that request fails. Names are matched to the work's authors by key, and only when the doc's `author_key` and `author_name` arrays are the same length: upstream drops malformed keys from `author_key` but not their names, so a positional zip of unequal arrays would put names on the wrong authors. Work records also hold authors in a legacy `{ author: "/authors/OL…A" }` string form, which is read alongside `{ author: { key } }`. It reports no edition count, because the search index's `edition_count` can disagree with the editions endpoint (`OL921881W`: 0 against 3); `get_work_editions`' `num_found` is the authoritative total.
+
 ### Tool metadata
 
-`ToolDefinition` carries a required `title` (human-readable display name) and optional `annotations`. All seven tools use the shared `READ_ONLY_LOOKUP` constant (`readOnlyHint: true, openWorldHint: true`) from `src/tools/types.ts`, which may allow clients to skip their confirmation prompt. Annotations are only *hints* — the spec has clients treat them as untrusted unless the server is trusted, so auto-approval is the client's decision, not something this server can assert. `destructiveHint` and `idempotentHint` are only meaningful when `readOnlyHint` is false, so they are deliberately omitted.
+`ToolDefinition` carries a required `title` (human-readable display name) and optional `annotations`. All nine tools use the shared `READ_ONLY_LOOKUP` constant (`readOnlyHint: true, openWorldHint: true`) from `src/tools/types.ts`, which may allow clients to skip their confirmation prompt. Annotations are only *hints* — the spec has clients treat them as untrusted unless the server is trusted, so auto-approval is the client's decision, not something this server can assert. `destructiveHint` and `idempotentHint` are only meaningful when `readOnlyHint` is false, so they are deliberately omitted.
 
 ### ESM / module resolution
 
