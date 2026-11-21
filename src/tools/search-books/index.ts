@@ -148,7 +148,7 @@ const handleSearchBooks: ToolHandler = async (args, clients) => {
 export const searchBooksTool: ToolDefinition = {
   name: "search_books",
   title: "Search books",
-  description: `Search Open Library across titles, authors, subjects, places, people, publishers and ISBNs. ${CRITERIA_MESSAGE}; combining several narrows the search. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`. Each result carries \`best_edition\` — one edition of the work, with its \`isbn_13\`/\`isbn_10\` where Open Library has them, and its \`edition_key\`, which can be passed to \`get_book_by_id\` as \`{ idType: "olid" }\` for that edition's full record.`,
+  description: `Search Open Library across titles, authors, subjects, places, people, publishers and ISBNs. ${CRITERIA_MESSAGE}; combining several narrows the search. Returns at most \`limit\` results (default 10) together with \`num_found\`, the total number of matches; page through them with \`offset\`. Each result carries \`best_edition\` — one edition of the work, with its \`isbn_13\`/\`isbn_10\` where Open Library has them, and its \`edition_key\`, which can be passed to \`get_book_by_id\` as \`{ idType: "olid" }\` for that edition's full record. Each result's \`open_library_work_key\` can be passed to \`get_work\` for the work's description, subjects and authors, or to \`get_work_editions\` to list its editions.`,
   schema: SearchBooksArgsSchema,
   annotations: READ_ONLY_LOOKUP,
   handler: handleSearchBooks,

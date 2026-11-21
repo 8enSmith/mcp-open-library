@@ -25,8 +25,10 @@ This project implements an MCP server that provides tools for AI assistants to i
 - **Get Author Photo**: Get the URL for an author's photo using their Open Library ID (OLID) (`get_author_photo`).
 - **Get Book Cover**: Get the URL for a book's cover image using various identifiers (ISBN, OCLC, LCCN, OLID, ID) (`get_book_cover`).
 - **Get Book by ID**: Retrieve detailed book information using various identifiers (ISBN, LCCN, OCLC, OLID) (`get_book_by_id`).
+- **Get Work Details**: Retrieve the full record for a work — the book as a whole, across all its editions — including its description, subjects and authors, using the work key the search tools return (`get_work`).
+- **List Work Editions**: List the specific editions of a work, with publisher, date, language, ISBNs, page count and format, with paging (`get_work_editions`).
 
-Search results are paged — every search tool returns at most `limit` results (default 10, maximum 50) alongside `num_found`, the total number of matches, which you page through with `offset` (maximum 1000). The two cover tools check that an image actually exists and say so when it does not, rather than handing back a URL that resolves to a blank placeholder.
+Search results are paged — every search tool returns at most `limit` results (default 10, maximum 50) alongside `num_found`, the total number of matches, which you page through with `offset` (maximum 1000). `get_work_editions` pages the same way, with `limit` defaulting to 20 (maximum 100) and no maximum `offset`. The two cover tools check that an image actually exists and say so when it does not, rather than handing back a URL that resolves to a blank placeholder.
 
 Every tool is a read-only lookup and advertises itself as such with the `readOnlyHint` and `openWorldHint` annotations, which may allow a client to skip the confirmation prompt it shows for tools that could change something. These are hints: the MCP specification has clients treat annotations as untrusted unless the server is trusted, so the confirmation policy is the client's to decide. Failures — an unreachable API, a rejected argument — come back as a tool result flagged `isError`, so an assistant can read what went wrong and correct its next call rather than the request failing outright.
 
@@ -49,7 +51,7 @@ will be fetched on first run:
 ```
 
 In Claude Desktop that goes in `claude_desktop_config.json`; other clients use the
-same shape. Restart the client and the seven tools below become available.
+same shape. Restart the client and the nine tools below become available.
 
 ### One-Click Install
 
@@ -119,6 +121,8 @@ This server implements the Model Context Protocol, which means it can be used by
 - `get_author_photo`: Get the URL for an author's photo using their Open Library Author ID (OLID)
 - `get_book_cover`: Get the URL for a book's cover image using a specific identifier (ISBN, OCLC, LCCN, OLID, or ID)
 - `get_book_by_id`: Get detailed book information using a specific identifier (ISBN, LCCN, OCLC, or OLID)
+- `get_work`: Get the full record for a work using its Open Library work key
+- `get_work_editions`: List the editions of a work using its Open Library work key
 
 **Example `search_books` input:**
 
@@ -381,6 +385,111 @@ An example of this tool being used in Claude Desktop can be see here:
 
 <img width="1132" alt="image" src="https://github.com/user-attachments/assets/0865904a-f984-4f7b-a27d-6397ac59d6d2" />
 
+**Example `get_work` input:**
+
+```json
+{
+  "work_key": "/works/OL45804W"
+}
+```
+
+**Example `get_work` output** (the description and subjects are shortened here):
+
+```json
+{
+  "work_key": "OL45804W",
+  "title": "Fantastic Mr Fox",
+  "authors": [
+    {
+      "key": "OL34184A",
+      "name": "Roald Dahl"
+    }
+  ],
+  "description": "The main character of Fantastic Mr. Fox is an extremely clever anthropomorphized fox named Mr. Fox. He lives with his wife and four little foxes. …",
+  "subjects": [
+    "Animals",
+    "Hunger",
+    "Juvenile fiction",
+    "Foxes"
+  ],
+  "subject_places": [
+    "English countryside"
+  ],
+  "subject_people": [
+    "Bean",
+    "Boggis",
+    "Bunce",
+    "Mr Fox"
+  ],
+  "subject_times": [
+    "20th Century"
+  ],
+  "cover_url": "https://covers.openlibrary.org/b/id/6498519-M.jpg"
+}
+```
+
+The `get_work` tool accepts the following parameter:
+
+- `work_key`: The Open Library work key, either bare (`OL45804W`) or in the `/works/OL45804W` form that `search_books`, `get_book_by_title` and `get_book_by_id` return as `open_library_work_key`
+
+Works that Open Library has merged into another are followed to the surviving work, whose key is the `work_key` reported. Each author `key` can be passed to `get_author_info`. Fields the record lacks — a description, excerpts, external links — are omitted.
+
+**Example `get_work_editions` input:**
+
+```json
+{
+  "work_key": "OL45804W",
+  "limit": 2,
+  "offset": 1
+}
+```
+
+**Example `get_work_editions` output:**
+
+```json
+{
+  "work_key": "OL45804W",
+  "num_found": 161,
+  "offset": 1,
+  "limit": 2,
+  "editions": [
+    {
+      "edition_key": "OL51048152M",
+      "title": "Fantastic Mr Fox",
+      "publishers": [
+        "Penguin Books, Limited"
+      ],
+      "publish_date": "2024",
+      "languages": [
+        "eng"
+      ],
+      "isbn_13": "9780241677377"
+    },
+    {
+      "edition_key": "OL50652985M",
+      "title": "Penguin Readers Level 2",
+      "subtitle": "Roald Dahl Fantastic Mr Fox",
+      "publishers": [
+        "Penguin Books, Limited"
+      ],
+      "publish_date": "2024",
+      "languages": [
+        "eng"
+      ],
+      "isbn_13": "9780241610923"
+    }
+  ]
+}
+```
+
+The `get_work_editions` tool accepts the following parameters:
+
+- `work_key`: The Open Library work key, in either form `get_work` accepts
+- `limit`: Optional maximum number of editions to return (1-100, defaults to 20)
+- `offset`: Optional number of editions to skip, for paging through `num_found` (defaults to 0)
+
+Editions come in Open Library's order, which is not by date, and the endpoint offers no filter by language or format. Each `edition_key` can be passed to `get_book_by_id` as `{ "idType": "olid" }` for that edition's full record, including author names and complete ISBN arrays.
+
 ### Docker
 
 You can test this MCP server using Docker. To do this first run:
@@ -411,7 +520,8 @@ npm run inspector http://localhost:8080
 - `src/tools/types.ts` - The `ToolDefinition` and `ToolHandler` contracts
 - `src/utils/` - Shared plumbing: `http.ts` (the API and covers Axios clients), `errors.ts`
   (argument parsing and error results), `results.ts`, `schema.ts` (Zod → JSON Schema),
-  `search.ts` (the shared search projection and paging schemas), `covers.ts`
+  `search.ts` (the shared search projection and paging schemas), `covers.ts`, `works.ts` (work
+  key handling and the redirect-aware work lookup)
 - `scripts/` - Release automation (`sync-server-json.mjs`, `promote-changelog.mjs`,
   `assert-release-consistency.mjs`) and its tests
 
