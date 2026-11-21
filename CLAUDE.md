@@ -92,7 +92,7 @@ Open Library does not format ISBNs consistently within that field — `978042503
 
 `work_key` accepts both `OL45804W` and `/works/OL45804W` (the form the search tools emit). The optional prefix lives in the schema's regex rather than a transform, so the published `pattern` admits both; handlers strip it after `parseArgs`. Every key the two tools emit is bare, so it can be passed straight to `get_book_by_id` (`olid`) or `get_author_info`.
 
-`get_work` takes author names from one `/search.json?q=key:/works/<key>` request and degrades to keys if that request fails. It reports no edition count, because the search index's `edition_count` can disagree with the editions endpoint (`OL921881W`: 0 against 3); `get_work_editions`' `num_found` is the authoritative total.
+`get_work` takes author names from one `/search.json?q=key:/works/<key>` request and degrades to keys if that request fails. Names are matched to the work's authors by key, and only when the doc's `author_key` and `author_name` arrays are the same length: upstream drops malformed keys from `author_key` but not their names, so a positional zip of unequal arrays would put names on the wrong authors. Work records also hold authors in a legacy `{ author: "/authors/OL…A" }` string form, which is read alongside `{ author: { key } }`. It reports no edition count, because the search index's `edition_count` can disagree with the editions endpoint (`OL921881W`: 0 against 3); `get_work_editions`' `num_found` is the authoritative total.
 
 ### Tool metadata
 

@@ -133,28 +133,71 @@ describe("handleGetWork", () => {
     expect(jsonBody(result).authors).toEqual([{ key: "OL21594A" }]);
   });
 
-  it("skips author entries without a key and keeps names matched by key", async () => {
+  const authorsFor = async (authors: unknown[], authorName: string[]) => {
     const { clients } = fakeClients({
-      "/works/OL66554W.json": {
-        ...PRIDE,
-        authors: [
-          { author: { key: "/authors/OL1A" } },
-          {},
-          { author: { key: "/authors/OL2A" } },
-        ],
-      },
+      "/works/OL66554W.json": { ...PRIDE, authors },
       "/search.json": {
-        docs: [{ author_key: ["OL1A", "OL2A"], author_name: ["First"] }],
+        docs: [{ author_key: ["OL1A", "OL2A"], author_name: authorName }],
       },
     });
+    return jsonBody(await handleGetWork({ work_key: "OL66554W" }, clients))
+      .authors;
+  };
 
-    const result = await handleGetWork({ work_key: "OL66554W" }, clients);
+  it("matches names to authors by key, skipping entries without one", async () => {
+    const authors = await authorsFor(
+      [
+        { author: { key: "/authors/OL2A" } },
+        {},
+        { author: { key: "/authors/OL1A" } },
+      ],
+      ["First", "Second"],
+    );
 
-    expect(jsonBody(result).authors).toEqual([
+    expect(authors).toEqual([
+      { key: "OL2A", name: "Second" },
       { key: "OL1A", name: "First" },
-      { key: "OL2A" },
     ]);
   });
+
+  it("reads legacy author entries that hold the key as a string", async () => {
+    const authors = await authorsFor(
+      [{ author: "/authors/OL1A" }, { author: { key: "/authors/OL2A" } }],
+      ["First", "Second"],
+    );
+
+    expect(authors).toEqual([
+      { key: "OL1A", name: "First" },
+      { key: "OL2A", name: "Second" },
+    ]);
+  });
+
+  it.each([
+    ["fewer names than keys", ["First"], [{ key: "OL1A" }, { key: "OL2A" }]],
+    [
+      "more names than keys",
+      ["Dropped", "First", "Second"],
+      [{ key: "OL1A" }, { key: "OL2A" }],
+    ],
+    [
+      "an empty name",
+      ["", "Second"],
+      [{ key: "OL1A" }, { key: "OL2A", name: "Second" }],
+    ],
+  ])(
+    "never attaches a name it cannot align when the search doc has %s",
+    async (_, authorName, expected) => {
+      const authors = await authorsFor(
+        [
+          { author: { key: "/authors/OL1A" } },
+          { author: { key: "/authors/OL2A" } },
+        ],
+        authorName,
+      );
+
+      expect(authors).toEqual(expected);
+    },
+  );
 
   it("omits fields the record lacks", async () => {
     const { clients } = fakeClients({

@@ -34,11 +34,16 @@ async function fetchAuthorNames(
       },
     });
     const doc = response.data?.docs?.[0];
+    const keys = doc?.author_key ?? [];
     const names = doc?.author_name ?? [];
 
+    if (keys.length !== names.length) {
+      return new Map();
+    }
+
     return new Map(
-      (doc?.author_key ?? []).flatMap((key, index): [string, string][] =>
-        names[index] === undefined ? [] : [[key, names[index]]],
+      keys.flatMap((key, index): [string, string][] =>
+        names[index] ? [[key, names[index]]] : [],
       ),
     );
   } catch (error) {
@@ -52,10 +57,11 @@ function toAuthors(
   names: Map<string, string>,
 ): WorkAuthor[] {
   return (work.authors ?? []).flatMap(({ author }) => {
-    if (!author?.key) {
+    const rawKey = typeof author === "string" ? author : author?.key;
+    if (!rawKey) {
       return [];
     }
-    const key = toBareKey(author.key);
+    const key = toBareKey(rawKey);
     const name = names.get(key);
     return [name === undefined ? { key } : { key, name }];
   });

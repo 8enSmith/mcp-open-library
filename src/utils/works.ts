@@ -20,7 +20,7 @@ export interface OpenLibraryWorkRecord {
   location?: string;
   title?: string;
   subtitle?: string;
-  authors?: { author?: { key?: string } }[];
+  authors?: { author?: { key?: string } | string }[];
   description?: string | { type: string; value: string };
   first_publish_date?: string;
   subjects?: string[];
