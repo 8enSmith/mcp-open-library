@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.2.7] - 2026-11-21
 ### Added
 - One-click install buttons for Cursor, VS Code and VS Code Insiders in the README, and a `claude mcp add` command for Claude Code. Each button goes through the editor's HTTPS redirect (`cursor.com/install-mcp`, `vscode.dev/redirect/mcp/install`) rather than linking to the `cursor://` or `vscode:` scheme directly, because GitHub strips links with custom schemes from rendered Markdown. All of them run the same `npx -y mcp-open-library` command as the `{"command": "npx", "args": ["-y", "mcp-open-library"]}` config the Quick Start shows, with the VS Code links also setting `"type": "stdio"`, and that JSON block stays the first launch command in the Installation section so scrapers such as mcp.so keep picking it up
 
